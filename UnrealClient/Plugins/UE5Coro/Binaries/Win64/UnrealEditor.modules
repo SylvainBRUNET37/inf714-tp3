@@ -1,0 +1,14 @@
+{
+	"BuildId": "47537391",
+	"Modules": 
+	{
+		"UE5Coro": "UnrealEditor-UE5Coro.dll",
+		"UE5CoroAI": "UnrealEditor-UE5CoroAI.dll",
+		"UE5CoroAITests": "UnrealEditor-UE5CoroAITests.dll",
+		"UE5CoroDebug": "UnrealEditor-UE5CoroDebug.dll",
+		"UE5CoroGAS": "UnrealEditor-UE5CoroGAS.dll",
+		"UE5CoroGASTests": "UnrealEditor-UE5CoroGASTests.dll",
+		"UE5CoroK2": "UnrealEditor-UE5CoroK2.dll",
+		"UE5CoroTests": "UnrealEditor-UE5CoroTests.dll"
+	}
+}

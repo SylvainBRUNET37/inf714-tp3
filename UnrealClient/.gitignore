@@ -2,6 +2,9 @@
 .idea/
 .vs/
 
+## Push libs
+!Plugins/UE5Coro/Binaries/Win64/**
+
 # Compiled Object files
 *.slo
 *.lo
