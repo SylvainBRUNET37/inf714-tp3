@@ -11,5 +11,6 @@ public class UnrealClientTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V6;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
 		ExtraModuleNames.Add("UnrealClient");
+		CppStandard = CppStandardVersion.Cpp20;
 	}
 }
