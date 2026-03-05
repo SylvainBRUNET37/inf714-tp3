@@ -5,6 +5,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "BackendConfig.h"
 #include "UserData.h"
+#include "Kismet/GameplayStatics.h"
 
 using namespace UE5Coro::Http;
 
@@ -23,7 +24,7 @@ UE5Coro::TCoroutine<UUserData*> UBackendSubsystem::LoginWithDeviceID()
 		
 		if (FJsonSerializer::Deserialize(Reader, JsonObject) and JsonObject.IsValid())
 		{
-			UUserData* UserData = NewObject<UUserData>();
+			UUserData* UserData = Cast<UUserData>(UGameplayStatics::CreateSaveGameObject(UUserData::StaticClass()));
 			
 			UserData->PlayerName = JsonObject->GetStringField(TEXT("name"));
 			UserData->UserId = JsonObject->GetStringField(TEXT("id"));

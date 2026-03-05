@@ -17,6 +17,11 @@ protected:
 	UUserData* UserData;
 	
 	UE5Coro::TCoroutine<> LoginWithDeviceID();
+	void LoadFromSave(const FString& SlotName, const int32& UserIndex);
+	
+	void OnSaveFinished(const FString& SlotName, const int32 UserIndex, bool bSuccess);
+	
+	UE5Coro::TCoroutine<> BeginPlayAsync();
 	
 	virtual void BeginPlay() override;
 };
