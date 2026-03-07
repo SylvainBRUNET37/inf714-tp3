@@ -1,6 +1,7 @@
 ﻿#include "ClientGameMode.h"
 
 #include "BackendSubsystem.h"
+#include "ClientHUD.h"
 #include "Kismet/GameplayStatics.h"
 #include "UserSession.h"
 
@@ -92,14 +93,38 @@ UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
 		UserSession = co_await UBackendSubsystem::CreateSession(UserData->UserId, UserData->GuestToken);
 	}
 	
-	// TODO : display error on fail
+	if (!IsValid(UserSession))
+	{
+		// TODO : Display error message
+		co_return;
+	}
 	
 	// Save to storage
 	SaveData(UserData, SlotName, LocalPlayerId);
 	SaveData(UserSession, SessionSlotName, LocalPlayerId);
 	
 	UE_LOG(LogTemp, Log, TEXT("Login Complete."));
+	LoginComplete();
 	co_return;
+}
+
+void AClientGameMode::LoginComplete() const
+{
+	if
+	(
+		const APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		PC
+	)
+	{
+		if
+		(
+			const AClientHUD* HUD = Cast<AClientHUD>(PC->GetHUD());
+			HUD
+		)
+		{
+			HUD->LogLoginComplete();
+		}
+	}
 }
 
 void AClientGameMode::SaveData(USaveGame* Data, const FString& SlotName, const int32 UserIndex)

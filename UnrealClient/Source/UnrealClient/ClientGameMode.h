@@ -29,6 +29,7 @@ protected:
 	void OnSaveFinished(const FString& SlotName, const int32 UserIndex, bool bSuccess);
 	
 	UE5Coro::TCoroutine<> BeginPlayAsync();
+	void LoginComplete() const;
 	void SaveData(USaveGame* Data, const FString& SlotName, int32 UserIndex);
 
 	static void LogUserData(const UUserData* Data);
