@@ -9,7 +9,7 @@ UE5Coro::TCoroutine<> AClientGameMode::LoginWithDeviceID()
 	UserData = co_await UBackendSubsystem::LoginWithDeviceID();
 }
 
-void AClientGameMode::LoadFromSave(const FString& SlotName, const int32& UserIndex)
+void AClientGameMode::LoadAccountFromSave(const FString& SlotName, const int32& UserIndex)
 {
 	USaveGame* LoadedGame = UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex);
 	UserData = Cast<UUserData>(LoadedGame);
@@ -51,59 +51,54 @@ UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
 	
 	bool bCreateSession = true;
 	
+	// Loading existing guest account
 	if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Save exists, loading."));
-		LoadFromSave(SlotName, LocalPlayerId);
+		LoadAccountFromSave(SlotName, LocalPlayerId);
 		LogUserData(UserData);
 		
-		LoadSessionFromSave(SessionSlotName, LocalPlayerId);
-		if (IsValid(UserSession))
+		bCreateSession = not UGameplayStatics::DoesSaveGameExist(SessionSlotName, 0);
+		
+		// Refresh the session
+		if (not bCreateSession)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Trying to Refresh Session"));
-			UserSession = co_await UBackendSubsystem::RefreshSession(UserData->UserId, UserData->GuestToken, UserSession->SessionToken);
-			SaveGuestSession(SessionSlotName, LocalPlayerId);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Log, TEXT("Trying to Create Session"));
-			UserSession = co_await UBackendSubsystem::CreateSession(UserData->UserId, UserData->GuestToken);
-			SaveGuestSession(SessionSlotName, LocalPlayerId);
+			LoadSessionFromSave(SessionSlotName, LocalPlayerId);
+			if (IsValid(UserSession))
+			{
+				UE_LOG(LogTemp, Log, TEXT("Trying to Refresh Session"));
+				UserSession = co_await UBackendSubsystem::RefreshSession(UserData->UserId, UserData->GuestToken, UserSession->SessionToken);
+				bCreateSession = not IsValid(UserSession);
+			}
 		}
 	}
+	// Creating a new guest account
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Save not found, requesting guest account."));
+		UE_LOG(LogTemp, Warning, TEXT("Save not found, requesting guest account."));
 		UserData = co_await UBackendSubsystem::LoginWithDeviceID();
-		
-		UE_LOG(LogTemp, Log, TEXT("Is UserData Valid ? %s"), (IsValid(UserData) ? TEXT("True") : TEXT("False")));
-		
 		if (!IsValid(UserData))
 		{
-			// Display error message
+			// TODO : Display error message
 			co_return;
 		}
-		SaveData(UserData, SlotName, LocalPlayerId);
-		
-		UE_LOG(LogTemp, Log, TEXT("Trying to Create Session"));
-		UserSession = co_await UBackendSubsystem::CreateSession(UserData->UserId, UserData->GuestToken);
-		SaveGuestSession(SessionSlotName, LocalPlayerId);
-		
+		SaveData(UserData, SlotName, LocalPlayerId);		
 	}
 	
+	// Session Creation
+	if (bCreateSession)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Trying to Create Session"));
+		UserSession = co_await UBackendSubsystem::CreateSession(UserData->UserId, UserData->GuestToken);
+	}
 	
-	// if (!success)
-	// {
-	// display error message
-	//	co_return;
-	// }
+	// TODO : display error on fail
 	
 	// Save to storage
-	// if (bSaveToStorage)
-	// SaveGuestAccount(SlotName, LocalPlayerId);
+	SaveData(UserData, SlotName, LocalPlayerId);
+	SaveData(UserSession, SessionSlotName, LocalPlayerId);
 	
 	UE_LOG(LogTemp, Log, TEXT("Login Complete."));
-	
 	co_return;
 }
 
@@ -111,21 +106,10 @@ void AClientGameMode::SaveData(USaveGame* Data, const FString& SlotName, const i
 {
 	if (IsValid(Data))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Saving guest account."));
+		UE_LOG(LogTemp, Log, TEXT("Saving guest : %s."), *Data->GetClass()->GetName());
 		FAsyncSaveGameToSlotDelegate Delegate;
 		Delegate.BindUObject(this, &AClientGameMode::OnSaveFinished);
 		UGameplayStatics::AsyncSaveGameToSlot(Data, SlotName, UserIndex, Delegate);
-	}
-}
-
-void AClientGameMode::SaveGuestSession(const FString& SlotName, const int32 UserIndex)
-{
-	if (IsValid(UserSession))
-	{
-		UE_LOG(LogTemp, Log, TEXT("Saving guest account."));
-		FAsyncSaveGameToSlotDelegate Delegate;
-		Delegate.BindUObject(this, &AClientGameMode::OnSaveFinished);
-		UGameplayStatics::AsyncSaveGameToSlot(UserSession, SlotName, UserIndex, Delegate);
 	}
 }
 
