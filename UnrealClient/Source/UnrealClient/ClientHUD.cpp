@@ -28,15 +28,16 @@ void AClientHUD::BeginPlay()
 	}
 }
 
-void AClientHUD::LogLoginComplete()
+void AClientHUD::LogLoginState(const bool& bLoginSucceeded)
 {
 	if (GEngine)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("%s"), TEXT("Log LoginState"));
 		GEngine->AddOnScreenDebugMessage(
 			-1,
 			5.0f,
-			FColor::Green,
-			TEXT("Login complete !")
+			bLoginSucceeded ? FColor::Green : FColor::Red,
+			bLoginSucceeded ? TEXT("Login successful !") : TEXT("Login failed.")
 		);
 	}
 }

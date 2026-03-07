@@ -80,7 +80,9 @@ UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
 		UserData = co_await UBackendSubsystem::LoginWithDeviceID();
 		if (!IsValid(UserData))
 		{
-			// TODO : Display error message
+			UE_LOG(LogTemp, Error, TEXT("Creation failed."));
+			DisplayLoginState(false);
+			co_await UE5Coro::Latent::Seconds(2.f);
 			co_return;
 		}
 		SaveData(UserData, SlotName, LocalPlayerId);		
@@ -95,7 +97,7 @@ UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
 	
 	if (!IsValid(UserSession))
 	{
-		// TODO : Display error message
+		DisplayLoginState(false);
 		co_return;
 	}
 	
@@ -104,11 +106,11 @@ UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
 	SaveData(UserSession, SessionSlotName, LocalPlayerId);
 	
 	UE_LOG(LogTemp, Log, TEXT("Login Complete."));
-	LoginComplete();
+	DisplayLoginState(true);
 	co_return;
 }
 
-void AClientGameMode::LoginComplete() const
+void AClientGameMode::DisplayLoginState(const bool& bLoginSucceeded) const
 {
 	if
 	(
@@ -122,7 +124,7 @@ void AClientGameMode::LoginComplete() const
 			HUD
 		)
 		{
-			HUD->LogLoginComplete();
+			HUD->LogLoginState(bLoginSucceeded);
 		}
 	}
 }

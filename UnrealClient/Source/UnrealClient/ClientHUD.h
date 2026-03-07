@@ -23,5 +23,5 @@ protected:
 	UUserWidget* StartHUD;
 	
 public:
-	static void LogLoginComplete();
+	static void LogLoginState(const bool& bLoginSucceeded);
 };
