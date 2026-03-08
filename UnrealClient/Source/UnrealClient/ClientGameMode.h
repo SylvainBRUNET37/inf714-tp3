@@ -21,12 +21,24 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	UUserSession* UserSession;
 
+	UPROPERTY(BlueprintReadonly, EditAnywhere)
+	FString UserDataSlotName = "UserDataSlot";
+
+	UPROPERTY(BlueprintReadonly, EditAnywhere)
+	FString SessionSlotName = "SessionSlot";
+
+	UPROPERTY(BlueprintReadonly, EditAnywhere)
+	int32 UserIndex = 0;
+
 	virtual void BeginPlay() override;
-	
+
 private:
 	UE5Coro::TCoroutine<> BeginPlayAsync();
-	
-	[[nodiscard]] UE5Coro::TCoroutine<bool> LoginAndSaveUser(const FString& UserDataSlotName, const int32 UserIndex);
-	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSession(const FString& SessionSlotName, const int32 UserIndex);
-	[[nodiscard]] UE5Coro::TCoroutine<bool>	RefreshAndSaveSession(const FString& SessionSlotName, const int32 UserIndex);
+
+	[[nodiscard]] UE5Coro::TCoroutine<bool> LogAndCreateSession();
+	[[nodiscard]] UE5Coro::TCoroutine<bool> RetrieveUserData();
+
+	[[nodiscard]] UE5Coro::TCoroutine<bool> LoginAndSaveUser();
+	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSession();
+	[[nodiscard]] UE5Coro::TCoroutine<bool> RefreshAndSaveSession();
 };
