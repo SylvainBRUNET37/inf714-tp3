@@ -21,6 +21,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	UUserSession* UserSession;
 	
+	/*
 	UE5Coro::TCoroutine<> LoginWithDeviceID();
 	
 	void LoadAccountFromSave(const FString& SlotName, const int32& UserIndex);
@@ -33,6 +34,11 @@ protected:
 	void SaveData(USaveGame* Data, const FString& SlotName, int32 UserIndex);
 
 	static void LogUserData(const UUserData* Data);
+	*/
+	
+	UE5Coro::TCoroutine<> BeginPlayAsync();
 	
 	virtual void BeginPlay() override;
+	[[nodiscard]] UE5Coro::TCoroutine<bool> LoginWithDeviceID(const FString& UserDataSlotName, const int32 UserIndex);
+	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateSession(const FString& SessionSlotName, const int32 UserIndex);
 };

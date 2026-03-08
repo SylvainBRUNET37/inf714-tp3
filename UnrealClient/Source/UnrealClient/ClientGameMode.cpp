@@ -1,10 +1,95 @@
 ﻿#include "ClientGameMode.h"
 
 #include "BackendSubsystem.h"
-#include "ClientHUD.h"
+#include "SerializationUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "UserSession.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
 
+void AClientGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	BeginPlayAsync();
+}
+
+UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
+{
+	const FString UserDataSlotName = "UserDataSlot";
+	const FString SessionSlotName = "SessionSlot";
+	static constexpr int32 UserIndex = 0; 
+	
+	if (UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex))
+	{
+		UserData = SerializationUtils::DeserializeUserData(UserDataSlotName, UserIndex);
+		check(UserData);
+		
+		UE_LOG(LogTemp, Log, TEXT("Loaded UserData from save."));
+	}
+	else
+	{
+		if (not co_await LoginWithDeviceID(UserDataSlotName, UserIndex))
+		{
+			co_return;
+		}
+		
+		if (not co_await CreateSession(SessionSlotName, UserIndex))
+		{
+			co_return;
+		}
+	}
+}
+
+UE5Coro::TCoroutine<bool> AClientGameMode::LoginWithDeviceID(const FString& UserDataSlotName, const int32 UserIndex)
+{
+	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	check(BackendSubsystem);
+	
+	const auto Response = 
+		co_await BackendSubsystem->MakeHttpRequest("Post", "users");
+	
+	if (not Response)
+	{
+		UE_LOG(LogTemp, Error, TEXT("LoginWithDeviceID: Failed to connect to backend"));
+		co_return false;
+	}
+	
+	UserData = SerializationUtils::DeserializeUserData(*Response);
+	check(UserData);
+	
+	UE_LOG(LogTemp, Log, TEXT("Login Complete"));
+	SerializationUtils::SaveUserData(UserData, UserDataSlotName, UserIndex);
+	
+	co_return true;
+}
+
+UE5Coro::TCoroutine<bool> AClientGameMode::CreateSession(const FString& SessionSlotName, const int32 UserIndex)
+{
+	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	check(BackendSubsystem);
+	
+	const FString Content = 
+		FString::Printf(TEXT("guestToken=%s"), *FGenericPlatformHttp::UrlEncode(UserData->GuestToken));
+	const auto Response = 
+		co_await BackendSubsystem->MakeHttpRequest(
+			"Post", "users/" + UserData->UserId + "/sessions/create", Content);
+	
+	if (not Response)
+	{
+		UE_LOG(LogTemp, Error, TEXT("CreateSession: Failed to connect to backend"));
+		co_return false;
+	}
+	
+	UserSession = SerializationUtils::DeserializeUserSession(*Response);
+	check(UserSession);
+	
+	UE_LOG(LogTemp, Log, TEXT("CreateSession Complete"));
+	SerializationUtils::SaveUserSession(UserSession, SessionSlotName, UserIndex);
+	
+	co_return true;
+}
+
+/*
 UE5Coro::TCoroutine<> AClientGameMode::LoginWithDeviceID()
 {
 	UserData = co_await UBackendSubsystem::LoginWithDeviceID();
@@ -149,9 +234,4 @@ void AClientGameMode::LogUserData(const UUserData* Data)
 		UE_LOG(LogTemp, Log, TEXT("GuestToken: %s"), *Data->GuestToken);
 	}
 }
-
-void AClientGameMode::BeginPlay()
-{
-	Super::BeginPlay();
-	BeginPlayAsync();
-}
+*/

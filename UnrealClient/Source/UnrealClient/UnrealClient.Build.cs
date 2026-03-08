@@ -15,7 +15,7 @@ public class UnrealClient : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Http", "UE5Coro", "Json", "JsonUtilities", "Slate", "SlateCore", "UMG"
+			"HTTP", "UE5Coro", "Json", "JsonUtilities", "Slate", "SlateCore", "UMG"
 		});
 
 		// Uncomment if you are using Slate UI
