@@ -3,7 +3,7 @@
 void AClientPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	bShowMouseCursor = true;
 	FInputModeUIOnly InputMode;
 	InputMode.SetWidgetToFocus(nullptr);

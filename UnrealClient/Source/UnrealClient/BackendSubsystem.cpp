@@ -28,11 +28,12 @@ UE5Coro::TCoroutine<UUserSession*> UBackendSubsystem::CreateSession(const FStrin
 	// }
 	//
 	// UE_LOG(LogTemp, Error, TEXT("CreateSession: Failed to connect to backend"));
-	
+
 	co_return {};
 }
 
-UE5Coro::TCoroutine<UUserSession*> UBackendSubsystem::RefreshSession(const FString& UserId, const FString& GuestToken, const FString& SessionToken)
+UE5Coro::TCoroutine<UUserSession*> UBackendSubsystem::RefreshSession(const FString& UserId, const FString& GuestToken,
+                                                                     const FString& SessionToken)
 {
 	// const FHttpRequestRef Request = CreateHttpRequest("Post", "users/" + UserId + "/sessions/refresh");
 	// FString authHeader = FString::Printf(TEXT("Bearer %s"), *SessionToken); 
@@ -50,40 +51,38 @@ UE5Coro::TCoroutine<UUserSession*> UBackendSubsystem::RefreshSession(const FStri
 	//
 	//
 	// UE_LOG(LogTemp, Error, TEXT("LoginWithDeviceID: Failed to connect to backend"));
-	
+
 	co_return {};
 }
 
-UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const FString& Method,
-	const FString& Endpoint, const FString& Content) const
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const FHttpRequestRef& Request) const
 {
-	const FHttpRequestRef Request = CreateHttpRequest(Method, Endpoint, Content);
-	
 	auto [Response, bConnectedSuccessfully] = co_await ProcessAsync(Request);
 	if (not Response or not bConnectedSuccessfully)
 	{
 		OnHttpError.Broadcast(CreateErrorMessageFromRequest(Request));
 		co_return TOptional<FString>{};
 	}
-	
+
 	if (not EHttpResponseCodes::IsOk(Response->GetResponseCode()))
 	{
 		OnHttpError.Broadcast(CreateErrorMessageFromRequest(Request, Response));
 		co_return TOptional<FString>{};
 	}
-	
+
 	co_return Response->GetContentAsString();
 }
 
-FHttpRequestRef UBackendSubsystem::CreateHttpRequest(const FString& Method, const FString& Endpoint, const FString& Content)
+FHttpRequestRef UBackendSubsystem::CreateSimpleHttpRequest(const FString& Method, const FString& Endpoint,
+                                                           const FString& Content)
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
-	
+
 	Request->SetURL(BackendConfig::GetEndpointURL(Endpoint));
 	Request->SetVerb(Method);
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
 	Request->SetContentAsString(Content);
-	
+
 	return Request;
 }
 
@@ -93,7 +92,7 @@ FString UBackendSubsystem::CreateErrorMessageFromRequest(const FHttpRequestRef& 
 }
 
 FString UBackendSubsystem::CreateErrorMessageFromRequest(const FHttpRequestRef& Request,
-	const TSharedPtr<IHttpResponse>& Response)
+                                                         const TSharedPtr<IHttpResponse>& Response)
 {
 	return FString::Printf(TEXT("HTTP request failed: %s %s - Response code: %d, Content: %s"),
 	                       *Request->GetVerb(),

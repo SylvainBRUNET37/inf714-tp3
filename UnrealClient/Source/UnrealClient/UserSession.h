@@ -12,12 +12,12 @@ class UNREALCLIENT_API UUserSession : public USaveGame
 
 public:
 	UUserSession() = default;
-	
+
 	UUserSession(FString SessionToken)
 		: SessionToken(std::move(SessionToken))
 	{
 	}
-	
+
 	UPROPERTY(VisibleAnywhere, Category = Basic)
 	FString SessionToken{};
 };

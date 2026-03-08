@@ -12,7 +12,7 @@ class UNREALCLIENT_API AClientHUD : public AHUD
 
 public:
 	AClientHUD();
-	
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -21,7 +21,7 @@ protected:
 
 	UPROPERTY()
 	UUserWidget* StartHUD;
-	
+
 public:
 	static void LogLoginState(const bool& bLoginSucceeded);
 };

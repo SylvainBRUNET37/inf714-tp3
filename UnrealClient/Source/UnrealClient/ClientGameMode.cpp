@@ -9,7 +9,7 @@
 void AClientGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	BeginPlayAsync();
 }
 
@@ -17,117 +17,136 @@ UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
 {
 	const FString UserDataSlotName = "UserDataSlot";
 	const FString SessionSlotName = "SessionSlot";
-	static constexpr int32 UserIndex = 0; 
-	
+	static constexpr int32 UserIndex = 0;
+
 	if (UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex))
 	{
 		UserData = SerializationUtils::DeserializeUserData(UserDataSlotName, UserIndex);
 		check(UserData);
-		
+
 		UE_LOG(LogTemp, Log, TEXT("Loaded UserData from save."));
+
+		if (UGameplayStatics::DoesSaveGameExist(SessionSlotName, UserIndex))
+		{
+			UserSession = SerializationUtils::DeserializeUserSession(SessionSlotName, UserIndex);
+			check(UserSession);
+			
+			UE_LOG(LogTemp, Log, TEXT("Loaded UserSession from save."));
+			
+			if (not co_await RefreshAndSaveSession(SessionSlotName, UserIndex))
+			{
+				co_return;
+			}
+		}
+		else
+		{
+			if (not co_await CreateAndSaveSession(SessionSlotName, UserIndex))
+			{
+				co_return;
+			}
+		}
 	}
 	else
 	{
-		if (not co_await LoginWithDeviceID(UserDataSlotName, UserIndex))
+		if (not co_await LoginAndSaveUser(UserDataSlotName, UserIndex))
 		{
 			co_return;
 		}
-		
-		if (not co_await CreateSession(SessionSlotName, UserIndex))
+
+		if (not co_await CreateAndSaveSession(SessionSlotName, UserIndex))
 		{
 			co_return;
 		}
 	}
 }
 
-UE5Coro::TCoroutine<bool> AClientGameMode::LoginWithDeviceID(const FString& UserDataSlotName, const int32 UserIndex)
+UE5Coro::TCoroutine<bool> AClientGameMode::LoginAndSaveUser(const FString& UserDataSlotName, const int32 UserIndex)
 {
 	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	check(BackendSubsystem);
+
+	const FHttpRequestRef Request =	BackendSubsystem->CreateSimpleHttpRequest(
+		"Post",
+		"users"
+	);
 	
-	const auto Response = 
-		co_await BackendSubsystem->MakeHttpRequest("Post", "users");
-	
+	const auto Response =
+		co_await BackendSubsystem->MakeHttpRequest(Request);
+
 	if (not Response)
 	{
-		UE_LOG(LogTemp, Error, TEXT("LoginWithDeviceID: Failed to connect to backend"));
+		UE_LOG(LogTemp, Error, TEXT("LoginAndSaveUser: Failed to connect to backend"));
 		co_return false;
 	}
-	
+
 	UserData = SerializationUtils::DeserializeUserData(*Response);
 	check(UserData);
-	
-	UE_LOG(LogTemp, Log, TEXT("Login Complete"));
+
 	SerializationUtils::SaveUserData(UserData, UserDataSlotName, UserIndex);
-	
+	UE_LOG(LogTemp, Log, TEXT("LoginAndSaveUser Complete"));
+
 	co_return true;
 }
 
-UE5Coro::TCoroutine<bool> AClientGameMode::CreateSession(const FString& SessionSlotName, const int32 UserIndex)
+UE5Coro::TCoroutine<bool> AClientGameMode::CreateAndSaveSession(const FString& SessionSlotName, const int32 UserIndex)
 {
 	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	check(BackendSubsystem);
-	
-	const FString Content = 
-		FString::Printf(TEXT("guestToken=%s"), *FGenericPlatformHttp::UrlEncode(UserData->GuestToken));
-	const auto Response = 
-		co_await BackendSubsystem->MakeHttpRequest(
-			"Post", "users/" + UserData->UserId + "/sessions/create", Content);
-	
+
+	const FHttpRequestRef Request =
+		BackendSubsystem->CreateSimpleHttpRequest(
+			"Post",
+			"users/" + UserData->UserId + "/sessions/create",
+			FString::Printf(TEXT("guestToken=%s"), *FGenericPlatformHttp::UrlEncode(UserData->GuestToken))
+		);
+
+	const auto Response =
+		co_await BackendSubsystem->MakeHttpRequest(Request);
+
 	if (not Response)
 	{
-		UE_LOG(LogTemp, Error, TEXT("CreateSession: Failed to connect to backend"));
+		UE_LOG(LogTemp, Error, TEXT("CreateAndSaveSession: Failed to connect to backend"));
 		co_return false;
 	}
-	
+
 	UserSession = SerializationUtils::DeserializeUserSession(*Response);
 	check(UserSession);
-	
-	UE_LOG(LogTemp, Log, TEXT("CreateSession Complete"));
+
 	SerializationUtils::SaveUserSession(UserSession, SessionSlotName, UserIndex);
-	
+	UE_LOG(LogTemp, Log, TEXT("CreateAndSaveSession Complete"));
+
+	co_return true;
+}
+
+UE5Coro::TCoroutine<bool> AClientGameMode::RefreshAndSaveSession(const FString& SessionSlotName, const int32 UserIndex)
+{
+	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	check(BackendSubsystem);
+
+	const FString AuthHeader = FString::Printf(TEXT("Bearer %s"), *UserSession->SessionToken);
+	const FHttpRequestRef Request = BackendSubsystem->CreateSimpleHttpRequest(
+		"Post", "users/" + UserData->UserId + "/sessions/refresh");
+	Request->SetHeader("Authorization", AuthHeader);
+
+	const auto Response =
+		co_await BackendSubsystem->MakeHttpRequest(Request);
+
+	if (not Response)
+	{
+		UE_LOG(LogTemp, Error, TEXT("RefreshAndSaveSession: Failed to connect to backend"));
+		co_return false;
+	}
+
+	UserSession = SerializationUtils::DeserializeUserSession(*Response);
+	check(UserSession);
+
+	SerializationUtils::SaveUserSession(UserSession, SessionSlotName, UserIndex);
+	UE_LOG(LogTemp, Log, TEXT("RefreshAndSaveSession Complete"));
+
 	co_return true;
 }
 
 /*
-UE5Coro::TCoroutine<> AClientGameMode::LoginWithDeviceID()
-{
-	UserData = co_await UBackendSubsystem::LoginWithDeviceID();
-}
-
-void AClientGameMode::LoadAccountFromSave(const FString& SlotName, const int32& UserIndex)
-{
-	USaveGame* LoadedGame = UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex);
-	UserData = Cast<UUserData>(LoadedGame);
-	if (IsValid(UserData))
-	{
-		UE_LOG(LogTemp, Log, TEXT("Loaded save."));
-	}
-}
-
-void AClientGameMode::LoadSessionFromSave(const FString& SlotName, const int32& UserIndex)
-{
-	USaveGame* LoadedGame = UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex);
-	UserSession = Cast<UUserSession>(LoadedGame);
-	if (IsValid(UserSession))
-	{
-		UE_LOG(LogTemp, Log, TEXT("Loaded session."));
-	}
-}
-
-void AClientGameMode::OnSaveFinished(const FString& SlotName, const int32 UserIndex, bool bSuccess)
-{
-	if (bSuccess)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Save succeeded."));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Save failed."));
-	}
-}
-
-
 
 UE5Coro::TCoroutine<> AClientGameMode::BeginPlayAsync()
 {

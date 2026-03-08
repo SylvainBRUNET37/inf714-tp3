@@ -9,7 +9,7 @@ UCLASS()
 class UNREALCLIENT_API AClientPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
 protected:
 	virtual void BeginPlay() override;
 };
