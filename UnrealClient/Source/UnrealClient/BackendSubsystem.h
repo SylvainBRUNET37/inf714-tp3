@@ -20,10 +20,6 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHtppErrorSignature OnHttpError;
 
-	UE5Coro::TCoroutine<UUserSession*> CreateSession(const FString& UserId, const FString& GuestToken);
-	UE5Coro::TCoroutine<UUserSession*> RefreshSession(const FString& UserId, const FString& GuestToken,
-	                                                  const FString& SessionToken);
-
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> MakeHttpRequest(const FHttpRequestRef& Request) const;
 
 	[[nodiscard]] static FHttpRequestRef CreateSimpleHttpRequest(
