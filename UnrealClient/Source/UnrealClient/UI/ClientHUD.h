@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "UE5Coro.h"
+
 #include "ClientHUD.generated.h"
 
 class UErrorDisplayWidget;
@@ -26,11 +28,13 @@ protected:
 	UUserWidget* ErrorDisplayWidget;
 	
 	UPROPERTY()
-	UUserWidget* LoggedWidget;
+	ULoggedWidget* LoggedWidget;
 	
 	virtual void BeginPlay() override;
 
 private:
 	UFUNCTION()
 	void DisplayLoggedWidget();
+	
+	UE5Coro::TCoroutine<> GetAndDisplayUserName() const;
 };

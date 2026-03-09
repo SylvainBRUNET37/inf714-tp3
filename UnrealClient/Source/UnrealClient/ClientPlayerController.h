@@ -21,6 +21,7 @@ public:
 	FOnLoginSuccessSignature OnLoginSuccess;
 	
 	UE5Coro::TCoroutine<> ChangeUserName(const FString& NewName) const;
+	[[nodiscard]] UE5Coro::TCoroutine<FString> GetUserName() const;
 
 protected:
 	UPROPERTY(BlueprintReadWrite)

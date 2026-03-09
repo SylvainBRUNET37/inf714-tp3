@@ -48,6 +48,19 @@ UUserSession* SerializationUtils::DeserializeUserSession(const FString& SlotName
 	return Cast<UUserSession>(LoadedGame);
 }
 
+FString SerializationUtils::DeserializeUserName(const FString& JsonString)
+{
+	TSharedPtr<FJsonObject> JsonObject;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+
+	if (FJsonSerializer::Deserialize(Reader, JsonObject) and JsonObject.IsValid())
+	{
+		return JsonObject->GetStringField(TEXT("name"));
+	}
+
+	return {};
+}
+
 void SerializationUtils::SaveUserData(UUserData* UserData, const FString& SlotName, const int32 UserIndex)
 {
 	check(UserData);

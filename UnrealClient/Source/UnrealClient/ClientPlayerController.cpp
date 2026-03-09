@@ -17,6 +17,19 @@ UE5Coro::TCoroutine<> AClientPlayerController::ChangeUserName(const FString& New
 	}
 }
 
+UE5Coro::TCoroutine<FString> AClientPlayerController::GetUserName() const
+{
+	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	check(BackendSubsystem);
+	
+	if (const auto UserName = co_await BackendSubsystem->GetUserName(UserData->UserId, UserSession->SessionToken))
+	{
+		co_return SerializationUtils::DeserializeUserName(*UserName);
+	}
+	
+	co_return FString("Unknown user name");
+}
+
 void AClientPlayerController::BeginPlay()
 {
 	Super::BeginPlay();

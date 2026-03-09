@@ -10,6 +10,8 @@ namespace SerializationUtils
 
 	[[nodiscard]] UUserSession* DeserializeUserSession(const FString& JsonString);
 	[[nodiscard]] UUserSession* DeserializeUserSession(const FString& SlotName, const int32 UserIndex);
+	
+	[[nodiscard]] FString DeserializeUserName(const FString& JsonString);
 
 	void SaveUserData(UUserData* UserData, const FString& SlotName, int32 UserIndex);
 	void SaveUserSession(UUserSession* UserSession, const FString& SlotName, int32 UserIndex);

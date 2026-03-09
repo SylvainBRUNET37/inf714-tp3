@@ -32,7 +32,7 @@ void AClientHUD::BeginPlay()
 	}
 	
 	check(LoggedWidgetClass);
-	LoggedWidget = CreateWidget<UUserWidget>(GetWorld(), LoggedWidgetClass);
+	LoggedWidget = CreateWidget<ULoggedWidget>(GetWorld(), LoggedWidgetClass);
 	ensure(LoggedWidget);
 	
 	AClientPlayerController* OwningPlayerController = Cast<AClientPlayerController>(GetOwningPlayerController());
@@ -43,5 +43,18 @@ void AClientHUD::BeginPlay()
 
 void AClientHUD::DisplayLoggedWidget()
 {
+	[[maybe_unused]] const auto _ = GetAndDisplayUserName();
+	
 	LoggedWidget->AddToViewport();
+}
+
+UE5Coro::TCoroutine<> AClientHUD::GetAndDisplayUserName() const
+{
+	const AClientPlayerController* OwningPlayerController = 
+		Cast<AClientPlayerController>(GetOwningPlayerController());
+	check(OwningPlayerController);
+	
+	const FString UserName = co_await OwningPlayerController->GetUserName();
+	
+	LoggedWidget->SetUserName(UserName);
 }

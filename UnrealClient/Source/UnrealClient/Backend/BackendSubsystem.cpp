@@ -12,7 +12,7 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::Login() const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	
-	Request->SetURL("users");
+	Request->SetURL(BackendConfig::GetEndpointURL("users"));
 	Request->SetVerb("Post");
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
 
@@ -57,6 +57,18 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::ChangeUserName(const 
 
 	Request->SetURL(Url);
 	Request->SetVerb(TEXT("PUT"));
+	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *SessionToken));
+
+	co_return co_await MakeHttpRequest(Request);
+}
+
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::GetUserName(const FString& UserId,
+	const FString& SessionToken) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+
+	Request->SetURL(BackendConfig::GetEndpointURL("users/" + UserId));
+	Request->SetVerb("Get");
 	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *SessionToken));
 
 	co_return co_await MakeHttpRequest(Request);
