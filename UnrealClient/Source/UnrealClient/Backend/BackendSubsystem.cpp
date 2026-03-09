@@ -50,8 +50,13 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::ChangeUserName(const 
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 
-	Request->SetURL(BackendConfig::GetEndpointURL("users/" + UserId + NewName));
-	Request->SetVerb("Put");
+	const FString EncodedName = FGenericPlatformHttp::UrlEncode(NewName);
+	const FString Url = BackendConfig::GetEndpointURL(
+		FString::Printf(TEXT("users/%s/name?value=%s"), *UserId, *EncodedName)
+	);
+
+	Request->SetURL(Url);
+	Request->SetVerb(TEXT("PUT"));
 	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *SessionToken));
 
 	co_return co_await MakeHttpRequest(Request);

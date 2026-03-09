@@ -1,20 +1,20 @@
 ﻿#include "ClientPlayerController.h"
 
-#include "BackendSubsystem.h"
-#include "SerializationUtils.h"
-#include "UserData.h"
-#include "UserSession.h"
+#include "UnrealClient/Backend/BackendSubsystem.h"
+#include "UnrealClient/Serialization/SerializationUtils.h"
+#include "UnrealClient/User/UserData.h"
+#include "UnrealClient/User/UserSession.h"
 #include "Kismet/GameplayStatics.h"
 
-UE5Coro::TCoroutine<bool> AClientPlayerController::ChangeUserName(const FString& NewName) const
+UE5Coro::TCoroutine<> AClientPlayerController::ChangeUserName(const FString& NewName) const
 {
 	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	check(BackendSubsystem);
-
-	co_return
-		co_await BackendSubsystem->ChangeUserName(UserData->UserId, UserSession->SessionToken, NewName)
-			? true
-			: false;
+	
+	if (co_await BackendSubsystem->ChangeUserName(UserData->UserId, UserSession->SessionToken, NewName))
+	{
+		UE_LOG(LogTemp, Log, TEXT("ChangeUserName: Successfully changed username to %s"), *NewName);
+	}
 }
 
 void AClientPlayerController::BeginPlay()
@@ -52,7 +52,7 @@ UE5Coro::TCoroutine<> AClientPlayerController::BeginPlayAsync()
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::LogAndCreateSession()
 {
-	co_return co_await LoginAndSaveUser() and  co_await CreateAndSaveSession();
+	co_return co_await LoginAndSaveUser() and co_await CreateAndSaveSession();
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()

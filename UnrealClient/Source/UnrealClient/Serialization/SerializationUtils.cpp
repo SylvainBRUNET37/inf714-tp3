@@ -1,7 +1,7 @@
 ﻿#include "SerializationUtils.h"
 
-#include "UserData.h"
-#include "UserSession.h"
+#include "UnrealClient/User/UserData.h"
+#include "UnrealClient/User/UserSession.h"
 #include "Kismet/GameplayStatics.h"
 
 UUserData* SerializationUtils::DeserializeUserData(const FString& JsonString)

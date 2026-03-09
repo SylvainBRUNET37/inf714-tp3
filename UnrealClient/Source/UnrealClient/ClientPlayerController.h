@@ -20,7 +20,7 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnLoginSuccessSignature OnLoginSuccess;
 	
-	[[nodiscard]] UE5Coro::TCoroutine<bool> ChangeUserName(const FString& NewName) const;
+	UE5Coro::TCoroutine<> ChangeUserName(const FString& NewName) const;
 
 protected:
 	UPROPERTY(BlueprintReadWrite)
