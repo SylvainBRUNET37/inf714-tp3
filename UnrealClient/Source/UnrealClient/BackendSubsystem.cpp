@@ -45,6 +45,18 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::RefreshSession(const 
 	co_return co_await MakeHttpRequest(Request);
 }
 
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::ChangeUserName(const FString& UserId,
+	const FString& SessionToken, const FString& NewName) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+
+	Request->SetURL(BackendConfig::GetEndpointURL("users/" + UserId + NewName));
+	Request->SetVerb("Put");
+	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *SessionToken));
+
+	co_return co_await MakeHttpRequest(Request);
+}
+
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const FHttpRequestRef& Request) const
 {
 	auto [Response, bConnectedSuccessfully] = co_await ProcessAsync(Request);

@@ -6,12 +6,23 @@
 #include "UserSession.h"
 #include "Kismet/GameplayStatics.h"
 
+UE5Coro::TCoroutine<bool> AClientPlayerController::ChangeUserName(const FString& NewName) const
+{
+	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	check(BackendSubsystem);
+
+	co_return
+		co_await BackendSubsystem->ChangeUserName(UserData->UserId, UserSession->SessionToken, NewName)
+			? true
+			: false;
+}
+
 void AClientPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
 	SetInputModeToUIOnly();
-	
+
 	BeginPlayAsync();
 }
 
@@ -30,28 +41,18 @@ UE5Coro::TCoroutine<> AClientPlayerController::BeginPlayAsync()
 		UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex)
 			? co_await RetrieveUserData()
 			: co_await LogAndCreateSession();
-	
+
 	if (not bSuccessfullyLoggedIn)
 	{
 		co_return;
 	}
-	
+
 	OnLoginSuccess.Broadcast();
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::LogAndCreateSession()
 {
-	if (not co_await LoginAndSaveUser())
-	{
-		co_return false;
-	}
-
-	if (not co_await CreateAndSaveSession())
-	{
-		co_return false;
-	}
-
-	co_return true;
+	co_return co_await LoginAndSaveUser() and  co_await CreateAndSaveSession();
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()
@@ -61,27 +62,19 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()
 
 	UE_LOG(LogTemp, Log, TEXT("Loaded UserData from save."));
 
-	if (UGameplayStatics::DoesSaveGameExist(SessionSlotName, UserIndex))
+	const bool bHasSession = UGameplayStatics::DoesSaveGameExist(SessionSlotName, UserIndex);
+
+	if (bHasSession)
 	{
 		UserSession = SerializationUtils::DeserializeUserSession(SessionSlotName, UserIndex);
 		check(UserSession);
 
 		UE_LOG(LogTemp, Log, TEXT("Loaded UserSession from save."));
-
-		if (not co_await RefreshAndSaveSession())
-		{
-			co_return false;
-		}
-	}
-	else
-	{
-		if (not co_await CreateAndSaveSession())
-		{
-			co_return false;
-		}
 	}
 
-	co_return true;
+	co_return co_await (bHasSession
+		? RefreshAndSaveSession()
+		: CreateAndSaveSession());
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::LoginAndSaveUser()
@@ -131,7 +124,7 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::RefreshAndSaveSession()
 	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	check(BackendSubsystem);
 
-	const auto Response = 
+	const auto Response =
 		co_await BackendSubsystem->RefreshSession(UserData->UserId, UserSession->SessionToken);
 	if (not Response)
 	{

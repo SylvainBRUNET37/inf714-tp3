@@ -19,6 +19,8 @@ class UNREALCLIENT_API AClientPlayerController : public APlayerController
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnLoginSuccessSignature OnLoginSuccess;
+	
+	[[nodiscard]] UE5Coro::TCoroutine<bool> ChangeUserName(const FString& NewName) const;
 
 protected:
 	UPROPERTY(BlueprintReadWrite)

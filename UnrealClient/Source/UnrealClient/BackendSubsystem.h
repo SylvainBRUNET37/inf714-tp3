@@ -23,6 +23,7 @@ public:
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> Login() const;
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> CreateSession(const FString& UserId, const FString& GuestToken) const;
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> RefreshSession(const FString& UserId, const FString& SessionToken) const;
+	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> ChangeUserName(const FString& UserId, const FString& SessionToken, const FString& NewName) const;
 
 private:
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> MakeHttpRequest(const FHttpRequestRef& Request) const;
