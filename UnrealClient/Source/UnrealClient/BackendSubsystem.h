@@ -19,13 +19,14 @@ class UNREALCLIENT_API UBackendSubsystem : public UGameInstanceSubsystem
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHtppErrorSignature OnHttpError;
-
-	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> MakeHttpRequest(const FHttpRequestRef& Request) const;
-
-	[[nodiscard]] static FHttpRequestRef CreateSimpleHttpRequest(
-		const FString& Method, const FString& Endpoint, const FString& Content = {});
+	
+	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> Login() const;
+	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> CreateSession(const FString& UserId, const FString& GuestToken) const;
+	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> RefreshSession(const FString& UserId, const FString& SessionToken) const;
 
 private:
+	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> MakeHttpRequest(const FHttpRequestRef& Request) const;
+	
 	[[nodiscard]] static FString CreateErrorMessageFromRequest(const FHttpRequestRef& Request);
 	[[nodiscard]] static FString CreateErrorMessageFromRequest(const FHttpRequestRef& Request,
 	                                                           const TSharedPtr<IHttpResponse>& Response);

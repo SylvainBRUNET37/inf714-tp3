@@ -4,7 +4,6 @@
 #include "SerializationUtils.h"
 #include "UserData.h"
 #include "UserSession.h"
-#include "GenericPlatform/GenericPlatformHttp.h"
 #include "Kismet/GameplayStatics.h"
 
 void AClientPlayerController::BeginPlay()
@@ -23,6 +22,21 @@ void AClientPlayerController::SetInputModeToUIOnly()
 	InputMode.SetWidgetToFocus(nullptr);
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
+}
+
+UE5Coro::TCoroutine<> AClientPlayerController::BeginPlayAsync()
+{
+	const bool bSuccessfullyLoggedIn =
+		UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex)
+			? co_await RetrieveUserData()
+			: co_await LogAndCreateSession();
+	
+	if (not bSuccessfullyLoggedIn)
+	{
+		co_return;
+	}
+	
+	OnLoginSuccess.Broadcast();
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::LogAndCreateSession()
@@ -70,32 +84,12 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()
 	co_return true;
 }
 
-UE5Coro::TCoroutine<> AClientPlayerController::BeginPlayAsync()
-{
-	const bool bSuccessfullyLoggedIn =
-		UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex)
-			? co_await RetrieveUserData()
-			: co_await LogAndCreateSession();
-	
-	if (not bSuccessfullyLoggedIn)
-	{
-		co_return;
-	}
-}
-
 UE5Coro::TCoroutine<bool> AClientPlayerController::LoginAndSaveUser()
 {
 	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	check(BackendSubsystem);
 
-	const FHttpRequestRef Request = BackendSubsystem->CreateSimpleHttpRequest(
-		"Post",
-		"users"
-	);
-
-	const auto Response =
-		co_await BackendSubsystem->MakeHttpRequest(Request);
-
+	const auto Response = co_await BackendSubsystem->Login();
 	if (not Response)
 	{
 		UE_LOG(LogTemp, Error, TEXT("LoginAndSaveUser: Failed to connect to backend"));
@@ -116,16 +110,7 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveSession()
 	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	check(BackendSubsystem);
 
-	const FHttpRequestRef Request =
-		BackendSubsystem->CreateSimpleHttpRequest(
-			"Post",
-			"users/" + UserData->UserId + "/sessions/create",
-			FString::Printf(TEXT("guestToken=%s"), *FGenericPlatformHttp::UrlEncode(UserData->GuestToken))
-		);
-
-	const auto Response =
-		co_await BackendSubsystem->MakeHttpRequest(Request);
-
+	const auto Response = co_await BackendSubsystem->CreateSession(UserData->UserId, UserData->GuestToken);
 	if (not Response)
 	{
 		UE_LOG(LogTemp, Error, TEXT("CreateAndSaveSession: Failed to connect to backend"));
@@ -146,14 +131,8 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::RefreshAndSaveSession()
 	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	check(BackendSubsystem);
 
-	const FString AuthHeader = FString::Printf(TEXT("Bearer %s"), *UserSession->SessionToken);
-	const FHttpRequestRef Request = BackendSubsystem->CreateSimpleHttpRequest(
-		"Post", "users/" + UserData->UserId + "/sessions/refresh");
-	Request->SetHeader("Authorization", AuthHeader);
-
-	const auto Response =
-		co_await BackendSubsystem->MakeHttpRequest(Request);
-
+	const auto Response = 
+		co_await BackendSubsystem->RefreshSession(UserData->UserId, UserSession->SessionToken);
 	if (not Response)
 	{
 		UE_LOG(LogTemp, Error, TEXT("RefreshAndSaveSession: Failed to connect to backend"));

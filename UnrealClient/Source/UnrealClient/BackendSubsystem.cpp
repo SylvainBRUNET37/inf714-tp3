@@ -4,8 +4,46 @@
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "BackendConfig.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
 
 using namespace UE5Coro::Http;
+
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::Login() const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+	
+	Request->SetURL("users");
+	Request->SetVerb("Post");
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+
+	co_return co_await MakeHttpRequest(Request);
+}
+
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateSession(const FString& UserId,
+	const FString& GuestToken) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+	
+	Request->SetURL(BackendConfig::GetEndpointURL("users/" + UserId + "/sessions/create"));
+	Request->SetVerb("Post");
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+	Request->SetContentAsString(
+		FString::Printf(TEXT("guestToken=%s"), *FGenericPlatformHttp::UrlEncode(GuestToken)));
+
+	co_return co_await MakeHttpRequest(Request);
+}
+
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::RefreshSession(const FString& UserId,
+	const FString& SessionToken) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+
+	Request->SetURL(BackendConfig::GetEndpointURL("users/" + UserId + "/sessions/refresh"));
+	Request->SetVerb("Post");
+	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *SessionToken));
+
+	co_return co_await MakeHttpRequest(Request);
+}
 
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const FHttpRequestRef& Request) const
 {
@@ -23,19 +61,6 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const
 	}
 
 	co_return Response->GetContentAsString();
-}
-
-FHttpRequestRef UBackendSubsystem::CreateSimpleHttpRequest(const FString& Method, const FString& Endpoint,
-                                                           const FString& Content)
-{
-	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
-
-	Request->SetURL(BackendConfig::GetEndpointURL(Endpoint));
-	Request->SetVerb(Method);
-	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
-	Request->SetContentAsString(Content);
-
-	return Request;
 }
 
 FString UBackendSubsystem::CreateErrorMessageFromRequest(const FHttpRequestRef& Request)

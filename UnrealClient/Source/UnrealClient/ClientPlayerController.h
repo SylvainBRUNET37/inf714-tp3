@@ -9,10 +9,16 @@
 class UUserSession;
 class UUserData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLoginSuccessSignature);
+
 UCLASS()
 class UNREALCLIENT_API AClientPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+	
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnLoginSuccessSignature OnLoginSuccess;
 
 protected:
 	UPROPERTY(BlueprintReadWrite)
