@@ -25,6 +25,14 @@ namespace INF714
         {
             CurrentEnvironment = env;
             Configuration = configuration;
+
+            Log.Logger = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri("http://localhost:9200"))
+                {
+                    AutoRegisterTemplate = true,
+                })
+                .CreateLogger();
         }
 
         public IConfiguration Configuration { get; }
@@ -37,6 +45,7 @@ namespace INF714
             services.AddHttpContextAccessor();
             services.AddSingleton<DynamoDbService>(new DynamoDbService(CurrentEnvironment.IsProduction()));
             services.AddSingleton<IUserProvider, DynamoDbUserProvider>();
+            services.AddSingleton<IAnalyticsProvider>(sp => new ElasticSearchAnalyticsProvider());
             services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -85,6 +94,8 @@ namespace INF714
             {
                 endpoints.MapControllers();
             });
+
+            loggerFactory.AddSerilog();
         }
     }
 }
