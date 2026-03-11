@@ -10,13 +10,17 @@ public class UnrealClient : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
+			"Core", "CoreUObject", "Engine", "InputCore", 
+			"EnhancedInput", "OnlineSubsystem", "OnlineSubsystemUtils",
+			/*"Steamworks",*/
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"HTTP", "UE5Coro", "Json", "JsonUtilities", "Slate", "SlateCore", "UMG"
 		});
+		
+		DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

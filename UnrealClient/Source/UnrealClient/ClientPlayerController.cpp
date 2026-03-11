@@ -35,6 +35,15 @@ void AClientPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	SetInputModeToUIOnly();
+	
+	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	check(BackendSubsystem);
+	
+	BackendSubsystem->GetSteamAuthTicketForWebApi(FGetSteamAuthTicketForWebApiResponse::CreateLambda(
+		[](const bool bSuccess, const FString& Token)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Token: %s"), *Token);
+		}));
 
 	BeginPlayAsync();
 }

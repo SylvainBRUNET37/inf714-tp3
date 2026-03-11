@@ -10,6 +10,7 @@ class UUserData;
 class UUserSession;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHtppErrorSignature, const FString&, ErrorMessage);
+DECLARE_DELEGATE_TwoParams(FGetSteamAuthTicketForWebApiResponse, bool, const FString&);
 
 UCLASS()
 class UNREALCLIENT_API UBackendSubsystem : public UGameInstanceSubsystem
@@ -25,6 +26,8 @@ public:
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> RefreshSession(const FString& UserId, const FString& SessionToken) const;
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> GetUserName(const FString& UserId, const FString& SessionToken) const;
 	UE5Coro::TCoroutine<TOptional<FString>> ChangeUserName(const FString& UserId, const FString& SessionToken, const FString& NewName) const;
+	
+	void GetSteamAuthTicketForWebApi(const FGetSteamAuthTicketForWebApiResponse& Delegate) const;
 	
 private:
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> MakeHttpRequest(const FHttpRequestRef& Request) const;

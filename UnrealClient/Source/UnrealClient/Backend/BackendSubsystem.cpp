@@ -5,8 +5,43 @@
 #include "Interfaces/IHttpResponse.h"
 #include "BackendConfig.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
+#include "OnlineSubsystemNames.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSubsystemUtils.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 
 using namespace UE5Coro::Http;
+
+void UBackendSubsystem::GetSteamAuthTicketForWebApi(const FGetSteamAuthTicketForWebApiResponse& Delegate) const
+{
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld(), STEAM_SUBSYSTEM);
+
+	if (!Subsystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Steam subsystem not found"));
+		return;
+	}
+
+	IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface();
+
+	if (!Identity.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Identity interface invalid"));
+		return;
+	}
+
+	Identity->GetLinkedAccountAuthToken(
+		0,
+		TEXT("WebAPI:UnrealClient"),
+		IOnlineIdentity::FOnGetLinkedAccountAuthTokenCompleteDelegate::CreateLambda(
+			[Delegate](int32 LocalUserNum, bool bWasSuccessful, const FExternalAuthToken& AuthToken)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Steam callback fired: %d"), bWasSuccessful);
+				Delegate.ExecuteIfBound(bWasSuccessful, AuthToken.TokenString);
+			}
+		)
+	);
+}
 
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::Login() const
 {
@@ -63,7 +98,7 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::ChangeUserName(const 
 }
 
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::GetUserName(const FString& UserId,
-	const FString& SessionToken) const
+                                                                       const FString& SessionToken) const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 
