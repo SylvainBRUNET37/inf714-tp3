@@ -6,6 +6,7 @@
 
 #include "ClientHUD.generated.h"
 
+class ULogginWidget;
 class UErrorDisplayWidget;
 class ULoggedWidget;
 
@@ -22,10 +23,16 @@ protected:
 	TSubclassOf<UErrorDisplayWidget> ErrorDisplayWidgetClass;
 	
 	UPROPERTY(EditAnywhere, Category="UI")
-	TSubclassOf<ULoggedWidget> LoggedWidgetClass;
+	TSubclassOf<ULogginWidget> LogginWidgetClass;
 	
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<ULoggedWidget> LoggedWidgetClass;
+
 	UPROPERTY()
 	UUserWidget* ErrorDisplayWidget;
+	
+	UPROPERTY()
+	ULogginWidget* LogginWidget;
 	
 	UPROPERTY()
 	ULoggedWidget* LoggedWidget;

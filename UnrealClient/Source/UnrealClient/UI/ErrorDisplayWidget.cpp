@@ -1,7 +1,9 @@
 ﻿#include "ErrorDisplayWidget.h"
 
 #include "Components/MultiLineEditableTextBox.h"
-#include "UnrealClient/Backend/BackendSubsystem.h"
+#include "UnrealClient/ErrorHandling/ErrorSubystem.h"
+
+class UErrorSubystem;
 
 void UErrorDisplayWidget::NativeConstruct()
 {
@@ -12,10 +14,10 @@ void UErrorDisplayWidget::NativeConstruct()
 	ErrorBox->SetText(FText::FromString(""));
 	ErrorBox->SetIsReadOnly(true);
 	
-	UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	check(BackendSubsystem);
+	const TNonNullPtr ErrorSubsystem = 
+		GetGameInstance()->GetSubsystem<UErrorSubystem>();
 	
-	BackendSubsystem->OnHttpError.AddDynamic(this, &UErrorDisplayWidget::DisplayErrorMessage);
+	ErrorSubsystem->OnError.AddDynamic(this, &UErrorDisplayWidget::DisplayErrorMessage);
 }
 
 void UErrorDisplayWidget::DisplayErrorMessage(const FString& ErrorMessage)

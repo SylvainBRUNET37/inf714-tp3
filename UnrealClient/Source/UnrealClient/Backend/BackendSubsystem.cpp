@@ -9,34 +9,38 @@
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemUtils.h"
 #include "Interfaces/OnlineIdentityInterface.h"
+#include "UnrealClient/ErrorHandling/ErrorHandlingUtils.h"
 
 using namespace UE5Coro::Http;
 
 void UBackendSubsystem::GetSteamAuthTicketForWebApi(const FGetSteamAuthTicketForWebApiResponse& Delegate) const
 {
-	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld(), STEAM_SUBSYSTEM);
-
-	if (!Subsystem)
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld(), STEAM_SUBSYSTEM);
+	if (not ensure(Subsystem))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Steam subsystem not found"));
+		ErrorHandlingUtils::BroadcastError(
+			GetGameInstance(), "Steam subsystem not found");
+		
 		return;
 	}
 
-	IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface();
-
-	if (!Identity.IsValid())
+	const IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface();
+	if (not ensure(Identity))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Identity interface invalid"));
+		ErrorHandlingUtils::BroadcastError(
+			GetGameInstance(), "Steam subsystem not found");
+		
 		return;
 	}
 
-	Identity->GetLinkedAccountAuthToken(
+	Identity->GetLinkedAccountAuthToken
+	(
 		0,
 		TEXT("WebAPI:UnrealClient"),
 		IOnlineIdentity::FOnGetLinkedAccountAuthTokenCompleteDelegate::CreateLambda(
-			[Delegate](int32 LocalUserNum, bool bWasSuccessful, const FExternalAuthToken& AuthToken)
+			[Delegate](int32, const bool bWasSuccessful, const FExternalAuthToken& AuthToken)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Steam callback fired: %d"), bWasSuccessful);
+				UE_LOG(LogTemp, Log, TEXT("Linked Account Auth Token Complete, success: %d"), bWasSuccessful);
 				Delegate.ExecuteIfBound(bWasSuccessful, AuthToken.TokenString);
 			}
 		)
@@ -114,13 +118,17 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const
 	auto [Response, bConnectedSuccessfully] = co_await ProcessAsync(Request);
 	if (not Response or not bConnectedSuccessfully)
 	{
-		OnHttpError.Broadcast(CreateErrorMessageFromRequest(Request));
+		ErrorHandlingUtils::BroadcastError(
+			GetGameInstance(), CreateErrorMessageFromRequest(Request));
+		
 		co_return TOptional<FString>{};
 	}
 
 	if (not EHttpResponseCodes::IsOk(Response->GetResponseCode()))
 	{
-		OnHttpError.Broadcast(CreateErrorMessageFromRequest(Request, Response));
+		ErrorHandlingUtils::BroadcastError(
+			GetGameInstance(), CreateErrorMessageFromRequest(Request, Response));
+		
 		co_return TOptional<FString>{};
 	}
 

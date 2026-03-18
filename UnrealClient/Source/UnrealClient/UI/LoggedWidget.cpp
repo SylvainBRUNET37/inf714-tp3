@@ -19,8 +19,8 @@ void ULoggedWidget::NativeConstruct()
 
 void ULoggedWidget::ChangeUserName()
 {
-	const AClientPlayerController* OwningPlayerController = Cast<AClientPlayerController>(GetOwningPlayer());
-	check(OwningPlayerController);
+	const TNonNullPtr<const AClientPlayerController> OwningPlayerController = 
+		Cast<AClientPlayerController>(GetOwningPlayer());
 	
 	[[maybe_unused]] const auto _ = 
 		OwningPlayerController->ChangeUserName(UserNameTextBox->GetText().ToString());

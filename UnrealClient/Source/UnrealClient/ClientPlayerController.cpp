@@ -8,8 +8,8 @@
 
 UE5Coro::TCoroutine<> AClientPlayerController::ChangeUserName(const FString& NewName) const
 {
-	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	check(BackendSubsystem);
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	
 	if (co_await BackendSubsystem->ChangeUserName(UserData->UserId, UserSession->SessionToken, NewName))
 	{
@@ -19,8 +19,8 @@ UE5Coro::TCoroutine<> AClientPlayerController::ChangeUserName(const FString& New
 
 UE5Coro::TCoroutine<FString> AClientPlayerController::GetUserName() const
 {
-	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	check(BackendSubsystem);
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 	
 	if (const auto UserName = co_await BackendSubsystem->GetUserName(UserData->UserId, UserSession->SessionToken))
 	{
@@ -30,22 +30,45 @@ UE5Coro::TCoroutine<FString> AClientPlayerController::GetUserName() const
 	co_return FString("Unknown user name");
 }
 
+void AClientPlayerController::ConnectWithSteam()
+{
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	
+	BackendSubsystem->GetSteamAuthTicketForWebApi(FGetSteamAuthTicketForWebApiResponse::CreateLambda(
+		[this](const bool bSuccess, const FString& AuthTicket)
+		{
+			if (not bSuccess)
+			{
+				UE_LOG(LogTemp, Error, TEXT("ConnectWithSteam: Failed to get Steam auth ticket"));
+				return;
+			}
+			
+			SteamAuthTicket = AuthTicket;
+			OnLoginSuccess.Broadcast();
+		}));
+}
+
+UE5Coro::TCoroutine<> AClientPlayerController::ConnectWithDeviceID()
+{
+	const bool bSuccessfullyLoggedIn = co_await LogAndCreateSession();
+	
+	if (not bSuccessfullyLoggedIn)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ConnectWithDeviceID: Failed to log in and create session"));
+		co_return;
+	}
+
+	OnLoginSuccess.Broadcast();
+}
+
 void AClientPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
 	SetInputModeToUIOnly();
 	
-	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	check(BackendSubsystem);
-	
-	BackendSubsystem->GetSteamAuthTicketForWebApi(FGetSteamAuthTicketForWebApiResponse::CreateLambda(
-		[](const bool bSuccess, const FString& Token)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Token: %s"), *Token);
-		}));
-
-	BeginPlayAsync();
+	TryRefreshSession();
 }
 
 void AClientPlayerController::SetInputModeToUIOnly()
@@ -57,19 +80,16 @@ void AClientPlayerController::SetInputModeToUIOnly()
 	SetInputMode(InputMode);
 }
 
-UE5Coro::TCoroutine<> AClientPlayerController::BeginPlayAsync()
+UE5Coro::TCoroutine<> AClientPlayerController::TryRefreshSession()
 {
-	const bool bSuccessfullyLoggedIn =
-		UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex)
-			? co_await RetrieveUserData()
-			: co_await LogAndCreateSession();
+	const bool bSuccessfullyLoggedIn = 
+		UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex) and co_await RetrieveUserData();
 
 	if (not bSuccessfullyLoggedIn)
 	{
+		UE_LOG(LogTemp, Log, TEXT("User has no saved data, could not refresh session"));
 		co_return;
 	}
-
-	OnLoginSuccess.Broadcast();
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::LogAndCreateSession()
@@ -101,8 +121,8 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::LoginAndSaveUser()
 {
-	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	check(BackendSubsystem);
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 
 	const auto Response = co_await BackendSubsystem->Login();
 	if (not Response)
@@ -122,8 +142,8 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::LoginAndSaveUser()
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveSession()
 {
-	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	check(BackendSubsystem);
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 
 	const auto Response = co_await BackendSubsystem->CreateSession(UserData->UserId, UserData->GuestToken);
 	if (not Response)
@@ -143,8 +163,8 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveSession()
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::RefreshAndSaveSession()
 {
-	const UBackendSubsystem* BackendSubsystem = GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	check(BackendSubsystem);
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 
 	const auto Response =
 		co_await BackendSubsystem->RefreshSession(UserData->UserId, UserSession->SessionToken);

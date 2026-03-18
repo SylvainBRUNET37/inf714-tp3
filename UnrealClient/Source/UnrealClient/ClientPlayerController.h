@@ -17,11 +17,13 @@ class UNREALCLIENT_API AClientPlayerController : public APlayerController
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(BlueprintAssignable)
 	FOnLoginSuccessSignature OnLoginSuccess;
 	
 	UE5Coro::TCoroutine<> ChangeUserName(const FString& NewName) const;
 	[[nodiscard]] UE5Coro::TCoroutine<FString> GetUserName() const;
+	
+	void ConnectWithSteam();
+	UE5Coro::TCoroutine<> ConnectWithDeviceID();
 
 protected:
 	UPROPERTY(BlueprintReadWrite)
@@ -42,10 +44,13 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	FString SteamAuthTicket;
+	
 	void SetInputModeToUIOnly();
 	
-	UE5Coro::TCoroutine<> BeginPlayAsync();
-
+	// Refresh the session if there is one, otherwise do nothing
+	UE5Coro::TCoroutine<> TryRefreshSession();
+	
 	[[nodiscard]] UE5Coro::TCoroutine<bool> LogAndCreateSession();
 	[[nodiscard]] UE5Coro::TCoroutine<bool> RetrieveUserData();
 
