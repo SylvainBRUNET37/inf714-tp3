@@ -41,7 +41,9 @@ namespace INF714.Data.Providers
             var item = new Dictionary<string, AttributeValue>();
             item.Add("id", new AttributeValue() { S = user.Id.ToString() });
             item.Add("guestToken", new AttributeValue() { S = user.GuestToken });
-            if(!string.IsNullOrEmpty(user.Name)) item.Add("name", new AttributeValue() { S = user.Name });
+            item.Add("steamId", new AttributeValue() { N = user.SteamID.ToString() });
+            if(user.Name is not null) 
+                item.Add("name", new AttributeValue() { S = user.Name });
             item.Add("level", new AttributeValue() { N = user.Level.ToString() } );
 
             var userItemsItem = new Dictionary<string, AttributeValue>();
@@ -62,6 +64,7 @@ namespace INF714.Data.Providers
             if(item.TryGetValue("guestToken", out value)) user.GuestToken = value.S;
             if(item.TryGetValue("name", out value)) user.Name = value.S;
             if(item.TryGetValue("level", out value)) user.Level = uint.Parse(value.N);
+            if(item.TryGetValue("steamId", out value)) user.SteamID = ulong.Parse(value.N);
 
             if(item.TryGetValue("items", out value))
             {
@@ -117,7 +120,7 @@ namespace INF714.Data.Providers
             var request = new ScanRequest
             {
                 TableName = _tableName,
-                FilterExpression = "steamID = :steamId",
+                FilterExpression = "steamId = :steamId",
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
                 {
                     { ":steamId", new AttributeValue() { N = steamId.ToString() } }

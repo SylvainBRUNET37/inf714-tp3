@@ -5,17 +5,18 @@
     <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
     <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
     <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
-    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\Sylvain\.nuget\packages\</NuGetPackageFolders>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\brus4186\.nuget\packages\;C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages</NuGetPackageFolders>
     <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
     <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">7.0.0</NuGetToolVersion>
   </PropertyGroup>
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <SourceRoot Include="C:\Users\Sylvain\.nuget\packages\" />
+    <SourceRoot Include="C:\Users\brus4186\.nuget\packages\" />
+    <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <PkgAWSSDK_Core Condition=" '$(PkgAWSSDK_Core)' == '' ">C:\Users\Sylvain\.nuget\packages\awssdk.core\3.7.106.23</PkgAWSSDK_Core>
-    <PkgAWSSDK_S3 Condition=" '$(PkgAWSSDK_S3)' == '' ">C:\Users\Sylvain\.nuget\packages\awssdk.s3\3.7.104.1</PkgAWSSDK_S3>
-    <PkgAWSSDK_GameLift Condition=" '$(PkgAWSSDK_GameLift)' == '' ">C:\Users\Sylvain\.nuget\packages\awssdk.gamelift\3.7.103</PkgAWSSDK_GameLift>
-    <PkgAWSSDK_DynamoDBv2 Condition=" '$(PkgAWSSDK_DynamoDBv2)' == '' ">C:\Users\Sylvain\.nuget\packages\awssdk.dynamodbv2\3.7.102.30</PkgAWSSDK_DynamoDBv2>
+    <PkgAWSSDK_Core Condition=" '$(PkgAWSSDK_Core)' == '' ">C:\Users\brus4186\.nuget\packages\awssdk.core\3.7.106.23</PkgAWSSDK_Core>
+    <PkgAWSSDK_S3 Condition=" '$(PkgAWSSDK_S3)' == '' ">C:\Users\brus4186\.nuget\packages\awssdk.s3\3.7.104.1</PkgAWSSDK_S3>
+    <PkgAWSSDK_GameLift Condition=" '$(PkgAWSSDK_GameLift)' == '' ">C:\Users\brus4186\.nuget\packages\awssdk.gamelift\3.7.103</PkgAWSSDK_GameLift>
+    <PkgAWSSDK_DynamoDBv2 Condition=" '$(PkgAWSSDK_DynamoDBv2)' == '' ">C:\Users\brus4186\.nuget\packages\awssdk.dynamodbv2\3.7.102.30</PkgAWSSDK_DynamoDBv2>
   </PropertyGroup>
 </Project>

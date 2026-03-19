@@ -42,6 +42,7 @@ namespace INF714.Controllers
             var user = new User();
             user.Id = Guid.NewGuid();
             user.GuestToken = GenerateRandomCryptographicKey(32);
+            user.Name = "";
             await _userProvider.Create(user);
             return CreatedAtAction(nameof(Get), new { userId = user.Id }, user);
         }
@@ -53,6 +54,7 @@ namespace INF714.Controllers
             user.Id = Guid.NewGuid();
             user.GuestToken = GenerateRandomCryptographicKey(32);
             user.SteamID = await _platformProvider.GetIDFromAuthTicket(authToken);
+            user.Name = "";
 
             await _userProvider.Create(user);
 

@@ -76,7 +76,12 @@ namespace INF714.Controllers
         [HttpPost("createFromSteam")]
         public async Task<ActionResult> CreateSessionFromSteam(Guid userId, [FromForm] [Required] string authToken)
         {
+            Console.WriteLine("Auth token " + authToken);
+
             var steamId = await _platformProvider.GetIDFromAuthTicket(authToken);
+
+            Console.WriteLine("Steam ID " + steamId);
+
             var user = await _userProvider.GetFromSteamID(steamId);
 
             if(user == null)
