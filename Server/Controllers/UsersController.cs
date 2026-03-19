@@ -67,6 +67,21 @@ namespace INF714.Controllers
             return CreatedAtAction(nameof(Get), new { userId = user.Id }, response);
         }
 
+        [HttpGet("{authToken}/steam")]
+        public async Task<ActionResult> GetFromSteam(string authToken)
+        {
+            var steamId = await _platformProvider.GetIDFromAuthTicket(authToken);
+            var user = await _userProvider.GetFromSteamID(steamId);
+
+            var response = new UserResponse()
+            {
+                Id = user.Id,
+                GuestToken = user.GuestToken
+            };
+
+            return CreatedAtAction(nameof(Get), new { userId = user.Id }, response);
+        }
+
         [Authorize("CanAccessSelfInfo")]
         [HttpGet("{userId}")]
         public async Task<ActionResult> Get(Guid userId)

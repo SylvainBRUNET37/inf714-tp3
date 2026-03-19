@@ -52,6 +52,8 @@ private:
 	UE5Coro::TCoroutine<> TryRefreshSession();
 	UE5Coro::TCoroutine<> LoginWithSteam();
 	
+	[[nodiscard]] UE5Coro::TCoroutine<bool> GetUserFromSteam();
+	
 	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSteamUser();
 	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSteamSession();
 	

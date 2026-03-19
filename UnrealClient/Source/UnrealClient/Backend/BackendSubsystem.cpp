@@ -56,6 +56,22 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateTempUser() cons
 	co_return co_await MakeHttpRequest(Request);
 }
 
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::GetUser(const FString& SteamAuthTicket) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+	
+	const FString EncodedSteamAuthTicket = FGenericPlatformHttp::UrlEncode(SteamAuthTicket);
+	const FString Url = BackendConfig::GetEndpointURL(
+		FString::Printf(TEXT("users/%s/steam"), *EncodedSteamAuthTicket)
+	);
+	
+	Request->SetURL(Url);
+	Request->SetVerb("Get");
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+
+	co_return co_await MakeHttpRequest(Request);
+}
+
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateSteamUser(const FString& SteamAuthTicket) const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
