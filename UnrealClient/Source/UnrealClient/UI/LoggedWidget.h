@@ -23,8 +23,15 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UButton* ValidateButton;
 	
+	UPROPERTY(meta = (BindWidget))
+	UButton* GoBackButton;
+	
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	
 	UFUNCTION()
 	void ChangeUserName();
+	
+	UFUNCTION()
+	void GoBack();
 };

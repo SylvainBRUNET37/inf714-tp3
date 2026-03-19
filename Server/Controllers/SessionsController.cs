@@ -17,11 +17,13 @@ namespace INF714.Controllers
     {
         private IUserProvider _userProvider;
         private IPlatformProvider _platformProvider;
+        private IAnalyticsProvider _analyticProvider;
 
-        public SessionsController(IUserProvider userProvider, IPlatformProvider platformProvider)
+        public SessionsController(IUserProvider userProvider, IPlatformProvider platformProvider, IAnalyticsProvider analyticProvider)
         {
             _userProvider = userProvider;
             _platformProvider = platformProvider;
+            _analyticProvider = analyticProvider;
         }
 
         private string CreateSessionToken(Guid userId)
@@ -44,9 +46,11 @@ namespace INF714.Controllers
 
         [Authorize("CanAccessSelfInfo")]
         [HttpPost("refresh")]
-        public ActionResult RefreshSession(Guid userId)
+        public async Task<ActionResult> RefreshSession(Guid userId)
         {
             var sessionToken = CreateSessionToken(userId);
+            await SendEvent(userId, "login");
+
             return Ok(sessionToken);
         }
 
@@ -96,6 +100,17 @@ namespace INF714.Controllers
 
             var sessionToken = CreateSessionToken(user.Id);
             return Ok(sessionToken);
+        }
+
+        private async Task SendEvent(Guid userId, string name)
+        {
+            var analyticsEvent = new Data.Analytics.LoginEvent
+            {
+                UserId = userId,
+                Type = name
+            };
+
+            await _analyticProvider.SendEvent(analyticsEvent);
         }
     }
 }

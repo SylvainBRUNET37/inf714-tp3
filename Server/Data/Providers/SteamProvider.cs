@@ -35,7 +35,7 @@ namespace INF714.Data.Providers
                                 .GetProperty("params")
                                 .GetProperty("steamid")
                                 .GetString();
-
+            
             var steamID = ulong.Parse(steamIDString);
 
             return Task.FromResult(steamID);

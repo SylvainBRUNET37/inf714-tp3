@@ -24,6 +24,12 @@ AClientHUD::AClientHUD()
 	LoggedWidgetClass = LoggedWidgetBpClass.Class;
 }
 
+void AClientHUD::SwitchToLogginWidget() const
+{
+	LoggedWidget->RemoveFromParent();
+	LogginWidget->AddToViewport();
+}
+
 void AClientHUD::BeginPlay()
 {
 	Super::BeginPlay();

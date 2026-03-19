@@ -17,8 +17,8 @@ class UNREALCLIENT_API UBackendSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
+	UE5Coro::TCoroutine<> NotifyDisconnection(const FString& UserId, const FString& SessionToken) const;
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> CreateTempUser() const;
-	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> GetUser(const FString& SteamAuthTicket) const;
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> CreateSteamUser(const FString& SteamAuthTicket) const;
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> CreateSession(const FString& UserId, const FString& GuestToken) const;
 	[[nodiscard]] UE5Coro::TCoroutine<TOptional<FString>> CreateSessionWithSteam(const FString& UserId, const FString& SteamAuthTicket) const;

@@ -21,6 +21,7 @@ protected:
 	UButton* DeviceIdConnexionButton;
 	
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	
 private:
 	UFUNCTION()

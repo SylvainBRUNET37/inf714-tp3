@@ -45,28 +45,24 @@ void UBackendSubsystem::GetSteamAuthTicketForWebApi(const FGetSteamAuthTicketFor
 	);
 }
 
+UE5Coro::TCoroutine<> UBackendSubsystem::NotifyDisconnection(const FString& UserId,
+	const FString& SessionToken) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+
+	Request->SetURL(BackendConfig::GetEndpointURL("users/" + UserId + "/disconnect"));
+	Request->SetVerb("Get");
+	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *SessionToken));
+
+	co_await MakeHttpRequest(Request);
+}
+
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateTempUser() const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	
 	Request->SetURL(BackendConfig::GetEndpointURL("users"));
 	Request->SetVerb("Post");
-	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
-
-	co_return co_await MakeHttpRequest(Request);
-}
-
-UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::GetUser(const FString& SteamAuthTicket) const
-{
-	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
-	
-	const FString EncodedSteamAuthTicket = FGenericPlatformHttp::UrlEncode(SteamAuthTicket);
-	const FString Url = BackendConfig::GetEndpointURL(
-		FString::Printf(TEXT("users/%s/steam"), *EncodedSteamAuthTicket)
-	);
-	
-	Request->SetURL(Url);
-	Request->SetVerb("Get");
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
 
 	co_return co_await MakeHttpRequest(Request);
@@ -160,7 +156,7 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const
 		ErrorHandlingUtils::BroadcastError(
 			GetGameInstance(), CreateErrorMessageFromRequest(Request));
 		
-		co_return TOptional<FString>{};
+		co_return NullOpt;
 	}
 
 	if (not EHttpResponseCodes::IsOk(Response->GetResponseCode()))
@@ -168,7 +164,7 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const
 		ErrorHandlingUtils::BroadcastError(
 			GetGameInstance(), CreateErrorMessageFromRequest(Request, Response));
 		
-		co_return TOptional<FString>{};
+		co_return NullOpt;
 	}
 
 	co_return Response->GetContentAsString();

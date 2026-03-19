@@ -17,6 +17,8 @@ class UNREALCLIENT_API AClientHUD : public AHUD
 
 public:
 	AClientHUD();
+	
+	void SwitchToLogginWidget() const;
 
 protected:
 	UPROPERTY(EditAnywhere, Category="UI")

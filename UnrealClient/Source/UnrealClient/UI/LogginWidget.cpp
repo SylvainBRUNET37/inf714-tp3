@@ -8,10 +8,25 @@ void ULogginWidget::NativeConstruct()
 	Super::NativeConstruct();
 	
 	check(SteamConnexionButton);
-	SteamConnexionButton->OnClicked.AddDynamic(this, &ULogginWidget::ConnectWithSteam);
+	SteamConnexionButton->OnPressed.AddDynamic(this, &ULogginWidget::ConnectWithSteam);
 	
 	check(DeviceIdConnexionButton)
-	DeviceIdConnexionButton->OnClicked.AddDynamic(this, &ULogginWidget::ConnectWithDeviceId);
+	DeviceIdConnexionButton->OnPressed.AddDynamic(this, &ULogginWidget::ConnectWithDeviceId);
+}
+
+void ULogginWidget::NativeDestruct()
+{
+	if (DeviceIdConnexionButton)
+	{
+		DeviceIdConnexionButton->OnPressed.RemoveDynamic(this, &ULogginWidget::ConnectWithDeviceId);
+	}
+	
+	if (SteamConnexionButton)
+	{
+		SteamConnexionButton->OnPressed.RemoveDynamic(this, &ULogginWidget::ConnectWithSteam);
+	}
+	
+	Super::NativeDestruct();
 }
 
 void ULogginWidget::ConnectWithSteam()

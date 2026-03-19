@@ -52,6 +52,11 @@ void AClientPlayerController::ConnectWithSteam()
 
 UE5Coro::TCoroutine<> AClientPlayerController::ConnectWithDeviceID()
 {
+	if (co_await TryRefreshSession())
+	{
+		co_return;
+	}
+	
 	const bool bSuccessfullyLoggedIn = co_await LoginAsTempUser();
 	
 	if (not bSuccessfullyLoggedIn)
@@ -72,6 +77,20 @@ void AClientPlayerController::BeginPlay()
 	TryRefreshSession();
 }
 
+void AClientPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UserData)
+	{
+		const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+			GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+	
+		[[maybe_unused]] const auto _ = 
+			BackendSubsystem->NotifyDisconnection(UserData->UserId, UserSession->SessionToken);
+	}
+	
+	Super::EndPlay(EndPlayReason);
+}
+
 void AClientPlayerController::SetInputModeToUIOnly()
 {
 	bShowMouseCursor = true;
@@ -81,7 +100,7 @@ void AClientPlayerController::SetInputModeToUIOnly()
 	SetInputMode(InputMode);
 }
 
-UE5Coro::TCoroutine<> AClientPlayerController::TryRefreshSession()
+UE5Coro::TCoroutine<bool> AClientPlayerController::TryRefreshSession()
 {
 	const bool bSuccessfullyLoggedIn = 
 		UGameplayStatics::DoesSaveGameExist(UserDataSlotName, UserIndex) and co_await RetrieveUserData();
@@ -89,10 +108,12 @@ UE5Coro::TCoroutine<> AClientPlayerController::TryRefreshSession()
 	if (not bSuccessfullyLoggedIn)
 	{
 		UE_LOG(LogTemp, Log, TEXT("User has no saved data, could not refresh session"));
-		co_return;
+		co_return false;
 	}
 	
 	OnLoginSuccess.Broadcast();
+	
+	co_return true;
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveSteamUser()
@@ -138,43 +159,13 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveSteamSession()
 
 UE5Coro::TCoroutine<> AClientPlayerController::LoginWithSteam()
 {
-	if (not co_await GetUserFromSteam())
+	if (not co_await CreateAndSaveSteamUser() or not co_await CreateAndSaveSteamSession())
 	{
-		if (not co_await CreateAndSaveSteamUser())
-		{
-			UE_LOG(LogTemp, Error, TEXT("LoginWithSteam: Failed to create and save user"));
-			co_return;
-		}
-	}
-	
-	if (not co_await CreateAndSaveSteamSession())
-	{
-		UE_LOG(LogTemp, Error, TEXT("LoginWithSteam: Failed to create session with steam"));
+		UE_LOG(LogTemp, Error, TEXT("LoginWithSteam: Failed to login with steam"));
 		co_return;
 	}
 	
 	OnLoginSuccess.Broadcast();
-}
-
-UE5Coro::TCoroutine<bool> AClientPlayerController::GetUserFromSteam()
-{
-	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
-		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
-	
-	const auto Response = co_await BackendSubsystem->GetUser(SteamAuthTicket);
-	if (not Response)
-	{
-		UE_LOG(LogTemp, Error, TEXT("GetUserFromSteam: Failed to connect to backend"));
-		co_return false;
-	}
-
-	UserData = SerializationUtils::DeserializeUserData(*Response);
-	check(UserData);
-
-	SerializationUtils::SaveUserData(UserData, UserDataSlotName, UserIndex);
-	UE_LOG(LogTemp, Log, TEXT("GetUserFromSteam Complete"));
-	
-	co_return true;
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::LoginAsTempUser()
@@ -189,19 +180,16 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()
 
 	UE_LOG(LogTemp, Log, TEXT("Loaded UserData from save."));
 
-	const bool bHasSession = UGameplayStatics::DoesSaveGameExist(SessionSlotName, UserIndex);
-
-	if (bHasSession)
+	if (UGameplayStatics::DoesSaveGameExist(SessionSlotName, UserIndex))
 	{
 		UserSession = SerializationUtils::DeserializeUserSession(SessionSlotName, UserIndex);
 		check(UserSession);
 
 		UE_LOG(LogTemp, Log, TEXT("Loaded UserSession from save."));
+		co_return co_await RefreshAndSaveSession();
 	}
-
-	co_return co_await (bHasSession
-		? RefreshAndSaveSession()
-		: CreateAndSaveSession());
+	
+	co_return co_await CreateAndSaveSession();
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveTempUser()

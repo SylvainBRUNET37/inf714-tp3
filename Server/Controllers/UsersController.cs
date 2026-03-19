@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using INF714.Data;
 using INF714.Data.Providers.Interfaces;
+using Amazon.GameLift.Model;
 
 namespace INF714.Controllers
 {
@@ -21,11 +22,13 @@ namespace INF714.Controllers
     {
         private IUserProvider _userProvider;
         private IPlatformProvider _platformProvider;
+        private IAnalyticsProvider _analyticProvider;
 
-        public UsersController(IUserProvider userProvider, IPlatformProvider platformProvider)
+        public UsersController(IUserProvider userProvider, IPlatformProvider platformProvider, IAnalyticsProvider analyticProvider)
         {
             _userProvider = userProvider;
             _platformProvider = platformProvider;
+            _analyticProvider = analyticProvider;
         }
 
         static string GenerateRandomCryptographicKey(int keyLength)
@@ -36,42 +39,52 @@ namespace INF714.Controllers
             return Convert.ToBase64String(randomBytes);
         }
 
+        [Authorize("CanAccessSelfInfo")]
+        [HttpGet("{userId}/disconnect")]
+        public async Task<ActionResult> Disconnect(Guid userId)
+        {
+            await SendEvent(userId, "playerDisconnected");
+
+            return Ok();
+        }
+
         [HttpPost]
         public async Task<ActionResult> Create()
         {
-            var user = new User();
-            user.Id = Guid.NewGuid();
-            user.GuestToken = GenerateRandomCryptographicKey(32);
-            user.Name = "";
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                GuestToken = GenerateRandomCryptographicKey(32),
+                Name = ""
+            };
+
             await _userProvider.Create(user);
+            await SendEvent(user.Id, "userCreated");
+
             return CreatedAtAction(nameof(Get), new { userId = user.Id }, user);
         }
 
         [HttpPost("{authToken}")]
         public async Task<ActionResult> CreateFromSteam(string authToken)
         {
-            var user = new User();
-            user.Id = Guid.NewGuid();
-            user.GuestToken = GenerateRandomCryptographicKey(32);
-            user.SteamID = await _platformProvider.GetIDFromAuthTicket(authToken);
-            user.Name = "";
-
-            await _userProvider.Create(user);
-
-            var response = new UserResponse()
+            var user = await GetFromSteam(authToken);
+            if (user is null)
             {
-                Id = user.Id,
-                GuestToken = user.GuestToken
-            };
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    GuestToken = GenerateRandomCryptographicKey(32),
+                    SteamID = await _platformProvider.GetIDFromAuthTicket(authToken),
+                    Name = ""
+                };
 
-            return CreatedAtAction(nameof(Get), new { userId = user.Id }, response);
-        }
-
-        [HttpGet("{authToken}/steam")]
-        public async Task<ActionResult> GetFromSteam(string authToken)
-        {
-            var steamId = await _platformProvider.GetIDFromAuthTicket(authToken);
-            var user = await _userProvider.GetFromSteamID(steamId);
+                await _userProvider.Create(user);
+                await SendEvent(user.Id, "userCreated");
+            }
+            else
+            {
+                await SendEvent(user.Id, "login");
+            }
 
             var response = new UserResponse()
             {
@@ -133,8 +146,43 @@ namespace INF714.Controllers
             var user = await _userProvider.Get(userId);
             if(user == null) return NotFound();
             user.Name = value;
+
             await _userProvider.Save(user);
+            await SendNameChangedEvent(userId, "nameChanged", value);
+
             return Ok();
+        }
+
+        //
+
+        private async Task<User> GetFromSteam(string authToken)
+        {
+            var steamId = await _platformProvider.GetIDFromAuthTicket(authToken);
+
+            return await _userProvider.GetFromSteamID(steamId);
+        }
+
+        private async Task SendNameChangedEvent(Guid userId, string eventName, string newName)
+        {
+            var analyticsEvent = new Data.Analytics.NameChangedEvent
+            {
+                UserId = userId,
+                Type = eventName,
+                UserName = newName
+            };
+
+            await _analyticProvider.SendEvent(analyticsEvent);
+        }
+
+        private async Task SendEvent(Guid userId, string name)
+        {
+            var analyticsEvent = new Data.Analytics.LoginEvent
+            {
+                UserId = userId,
+                Type = name
+            };
+
+            await _analyticProvider.SendEvent(analyticsEvent);
         }
     }
 }

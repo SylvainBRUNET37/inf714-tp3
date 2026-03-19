@@ -42,6 +42,7 @@ protected:
 	int32 UserIndex = 0;
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	FString SteamAuthTicket;
@@ -49,10 +50,8 @@ private:
 	void SetInputModeToUIOnly();
 	
 	// Refresh the session if there is one, otherwise do nothing
-	UE5Coro::TCoroutine<> TryRefreshSession();
+	UE5Coro::TCoroutine<bool> TryRefreshSession();
 	UE5Coro::TCoroutine<> LoginWithSteam();
-	
-	[[nodiscard]] UE5Coro::TCoroutine<bool> GetUserFromSteam();
 	
 	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSteamUser();
 	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSteamSession();
