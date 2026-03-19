@@ -16,10 +16,12 @@ namespace INF714.Controllers
     public class SessionsController : ControllerBase
     {
         private IUserProvider _userProvider;
+        private IPlatformProvider _platformProvider;
 
-        public SessionsController(IUserProvider userProvider)
+        public SessionsController(IUserProvider userProvider, IPlatformProvider platformProvider)
         {
             _userProvider = userProvider;
+            _platformProvider = platformProvider;
         }
 
         private string CreateSessionToken(Guid userId)
@@ -68,6 +70,26 @@ namespace INF714.Controllers
             }
 
             var sessionToken = CreateSessionToken(userId);
+            return Ok(sessionToken);
+        }
+
+        [HttpPost("createFromSteam")]
+        public async Task<ActionResult> CreateSessionFromSteam(Guid userId, [FromForm] [Required] string authToken)
+        {
+            var steamId = await _platformProvider.GetIDFromAuthTicket(authToken);
+            var user = await _userProvider.GetFromSteamID(steamId);
+
+            if(user == null)
+            {
+                return NotFound();
+            }
+            
+            if(string.IsNullOrEmpty(user.GuestToken))
+            {
+                return Unauthorized();
+            }
+
+            var sessionToken = CreateSessionToken(user.Id);
             return Ok(sessionToken);
         }
     }

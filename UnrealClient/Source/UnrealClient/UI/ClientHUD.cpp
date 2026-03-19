@@ -54,6 +54,8 @@ void AClientHUD::BeginPlay()
 
 void AClientHUD::DisplayLoggedWidget()
 {
+	LogginWidget->RemoveFromParent();
+	
 	[[maybe_unused]] const auto _ = GetAndDisplayUserName();
 	
 	LoggedWidget->AddToViewport();

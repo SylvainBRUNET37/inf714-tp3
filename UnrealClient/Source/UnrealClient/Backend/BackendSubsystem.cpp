@@ -11,8 +11,6 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "UnrealClient/ErrorHandling/ErrorHandlingUtils.h"
 
-using namespace UE5Coro::Http;
-
 void UBackendSubsystem::GetSteamAuthTicketForWebApi(const FGetSteamAuthTicketForWebApiResponse& Delegate) const
 {
 	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld(), STEAM_SUBSYSTEM);
@@ -28,7 +26,7 @@ void UBackendSubsystem::GetSteamAuthTicketForWebApi(const FGetSteamAuthTicketFor
 	if (not ensure(Identity))
 	{
 		ErrorHandlingUtils::BroadcastError(
-			GetGameInstance(), "Steam subsystem not found");
+			GetGameInstance(), "Steam Identity interface not found");
 		
 		return;
 	}
@@ -47,7 +45,7 @@ void UBackendSubsystem::GetSteamAuthTicketForWebApi(const FGetSteamAuthTicketFor
 	);
 }
 
-UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::Login() const
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateTempUser() const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	
@@ -58,8 +56,19 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::Login() const
 	co_return co_await MakeHttpRequest(Request);
 }
 
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateSteamUser(const FString& SteamAuthTicket) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+	
+	Request->SetURL(BackendConfig::GetEndpointURL("users") + "/" + SteamAuthTicket);
+	Request->SetVerb("Post");
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+
+	co_return co_await MakeHttpRequest(Request);
+}
+
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateSession(const FString& UserId,
-	const FString& GuestToken) const
+                                                                         const FString& GuestToken) const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	
@@ -72,8 +81,22 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateSession(const F
 	co_return co_await MakeHttpRequest(Request);
 }
 
+UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::CreateSessionWithSteam(const FString& UserId,
+	const FString& SteamAuthTicket) const
+{
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+	
+	Request->SetURL(BackendConfig::GetEndpointURL("users/" + UserId + "/sessions/createFromSteam"));
+	Request->SetVerb("Post");
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+	Request->SetContentAsString(
+		FString::Printf(TEXT("authToken=%s"), *FGenericPlatformHttp::UrlEncode(SteamAuthTicket)));
+
+	co_return co_await MakeHttpRequest(Request);
+}
+
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::RefreshSession(const FString& UserId,
-	const FString& SessionToken) const
+                                                                          const FString& SessionToken) const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 
@@ -114,8 +137,8 @@ UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::GetUserName(const FSt
 }
 
 UE5Coro::TCoroutine<TOptional<FString>> UBackendSubsystem::MakeHttpRequest(const FHttpRequestRef& Request) const
-{
-	auto [Response, bConnectedSuccessfully] = co_await ProcessAsync(Request);
+{	
+	auto [Response, bConnectedSuccessfully] = co_await UE5Coro::Http::ProcessAsync(Request);
 	if (not Response or not bConnectedSuccessfully)
 	{
 		ErrorHandlingUtils::BroadcastError(

@@ -50,11 +50,15 @@ private:
 	
 	// Refresh the session if there is one, otherwise do nothing
 	UE5Coro::TCoroutine<> TryRefreshSession();
+	UE5Coro::TCoroutine<> LoginWithSteam();
 	
-	[[nodiscard]] UE5Coro::TCoroutine<bool> LogAndCreateSession();
+	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSteamUser();
+	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSteamSession();
+	
+	[[nodiscard]] UE5Coro::TCoroutine<bool> LoginAsTempUser();
 	[[nodiscard]] UE5Coro::TCoroutine<bool> RetrieveUserData();
 
-	[[nodiscard]] UE5Coro::TCoroutine<bool> LoginAndSaveUser();
+	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveTempUser();
 	[[nodiscard]] UE5Coro::TCoroutine<bool> CreateAndSaveSession();
 	[[nodiscard]] UE5Coro::TCoroutine<bool> RefreshAndSaveSession();
 };

@@ -8,5 +8,6 @@ namespace INF714.Data.Providers.Interfaces
         Task Create(User user);
         Task<User> Get(Guid id);
         Task Save(User user);
+        Task<User> GetFromSteamID(ulong steamId);
     }
 }

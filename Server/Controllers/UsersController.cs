@@ -9,15 +9,23 @@ using INF714.Data.Providers.Interfaces;
 
 namespace INF714.Controllers
 {
+    class UserResponse
+    {
+        public Guid Id { get; set; }
+        public string GuestToken { get; set; }
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
     {
         private IUserProvider _userProvider;
+        private IPlatformProvider _platformProvider;
 
-        public UsersController(IUserProvider userProvider)
+        public UsersController(IUserProvider userProvider, IPlatformProvider platformProvider)
         {
             _userProvider = userProvider;
+            _platformProvider = platformProvider;
         }
 
         static string GenerateRandomCryptographicKey(int keyLength)
@@ -36,6 +44,25 @@ namespace INF714.Controllers
             user.GuestToken = GenerateRandomCryptographicKey(32);
             await _userProvider.Create(user);
             return CreatedAtAction(nameof(Get), new { userId = user.Id }, user);
+        }
+
+        [HttpPost("{authToken}")]
+        public async Task<ActionResult> CreateFromSteam(string authToken)
+        {
+            var user = new User();
+            user.Id = Guid.NewGuid();
+            user.GuestToken = GenerateRandomCryptographicKey(32);
+            user.SteamID = await _platformProvider.GetIDFromAuthTicket(authToken);
+
+            await _userProvider.Create(user);
+
+            var response = new UserResponse()
+            {
+                Id = user.Id,
+                GuestToken = user.GuestToken
+            };
+
+            return CreatedAtAction(nameof(Get), new { userId = user.Id }, response);
         }
 
         [Authorize("CanAccessSelfInfo")]

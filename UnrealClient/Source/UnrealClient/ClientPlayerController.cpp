@@ -45,13 +45,14 @@ void AClientPlayerController::ConnectWithSteam()
 			}
 			
 			SteamAuthTicket = AuthTicket;
-			OnLoginSuccess.Broadcast();
+			
+			[[maybe_unused]] const auto _ = LoginWithSteam();
 		}));
 }
 
 UE5Coro::TCoroutine<> AClientPlayerController::ConnectWithDeviceID()
 {
-	const bool bSuccessfullyLoggedIn = co_await LogAndCreateSession();
+	const bool bSuccessfullyLoggedIn = co_await LoginAsTempUser();
 	
 	if (not bSuccessfullyLoggedIn)
 	{
@@ -90,11 +91,65 @@ UE5Coro::TCoroutine<> AClientPlayerController::TryRefreshSession()
 		UE_LOG(LogTemp, Log, TEXT("User has no saved data, could not refresh session"));
 		co_return;
 	}
+	
+	OnLoginSuccess.Broadcast();
 }
 
-UE5Coro::TCoroutine<bool> AClientPlayerController::LogAndCreateSession()
+UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveSteamUser()
 {
-	co_return co_await LoginAndSaveUser() and co_await CreateAndSaveSession();
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+			
+	const auto Response = co_await BackendSubsystem->CreateSteamUser(SteamAuthTicket);
+	if (not Response)
+	{
+		co_return false;
+	}
+	
+	UserData = SerializationUtils::DeserializeUserData(*Response);
+	check(UserData);
+
+	SerializationUtils::SaveUserData(UserData, UserDataSlotName, UserIndex);
+
+	co_return true;
+}
+
+UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveSteamSession()
+{
+	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
+		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
+
+	const auto Response = 
+		co_await BackendSubsystem->CreateSessionWithSteam(UserData->UserId, SteamAuthTicket);
+	if (not Response)
+	{
+		UE_LOG(LogTemp, Error, TEXT("CreateAndSaveSteamSession: Failed to create session with steam"));
+		co_return false;
+	}
+	
+	UserSession = SerializationUtils::DeserializeUserSession(*Response);
+	check(UserSession);
+
+	SerializationUtils::SaveUserSession(UserSession, SessionSlotName, UserIndex);
+	UE_LOG(LogTemp, Log, TEXT("CreateAndSaveSteamSession Complete"));
+	
+	co_return true;
+}
+
+UE5Coro::TCoroutine<> AClientPlayerController::LoginWithSteam()
+{
+	if (not co_await CreateAndSaveSteamUser() or not co_await CreateAndSaveSteamSession())
+	{
+		UE_LOG(LogTemp, Error, TEXT("LoginWithSteam: Failed to log in with steam"));
+		co_return;
+	}
+	
+	OnLoginSuccess.Broadcast();
+}
+
+UE5Coro::TCoroutine<bool> AClientPlayerController::LoginAsTempUser()
+{
+	co_return co_await CreateAndSaveTempUser() and co_await CreateAndSaveSession();
 }
 
 UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()
@@ -119,12 +174,12 @@ UE5Coro::TCoroutine<bool> AClientPlayerController::RetrieveUserData()
 		: CreateAndSaveSession());
 }
 
-UE5Coro::TCoroutine<bool> AClientPlayerController::LoginAndSaveUser()
+UE5Coro::TCoroutine<bool> AClientPlayerController::CreateAndSaveTempUser()
 {
 	const TNonNullPtr <const UBackendSubsystem> BackendSubsystem = 
 		GetGameInstance()->GetSubsystem<UBackendSubsystem>();
 
-	const auto Response = co_await BackendSubsystem->Login();
+	const auto Response = co_await BackendSubsystem->CreateTempUser();
 	if (not Response)
 	{
 		UE_LOG(LogTemp, Error, TEXT("LoginAndSaveUser: Failed to connect to backend"));

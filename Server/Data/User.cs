@@ -7,6 +7,7 @@ namespace INF714.Data
     {
         public Guid Id { get; set; }
         public string GuestToken { get; set; }
+        public ulong SteamID { get; set; }
 
         string _name = string.Empty;
         public string Name 

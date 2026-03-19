@@ -111,5 +111,26 @@ namespace INF714.Data.Providers
             request.ConditionExpression = "attribute_exists(id)";
             await _client.PutItemAsync(request);
         }
+
+        public async Task<User> GetFromSteamID(ulong steamId)
+        {
+            var request = new ScanRequest
+            {
+                TableName = _tableName,
+                FilterExpression = "steamID = :steamId",
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
+                {
+                    { ":steamId", new AttributeValue() { N = steamId.ToString() } }
+                }
+            };
+
+            var response = await _client.ScanAsync(request);
+            if(response.Items.Count == 0)
+            {
+                return null;
+            }
+
+            return ConvertUserFromDynamoDbItem(response.Items[0]);
+        }
     }
 }

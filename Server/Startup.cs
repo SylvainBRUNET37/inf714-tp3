@@ -45,6 +45,7 @@ namespace INF714
             services.AddHttpContextAccessor();
             services.AddSingleton<DynamoDbService>(new DynamoDbService(CurrentEnvironment.IsProduction()));
             services.AddSingleton<IUserProvider, DynamoDbUserProvider>();
+            services.AddSingleton<IPlatformProvider, SteamProvider>();
             services.AddSingleton<IAnalyticsProvider>(sp => new ElasticSearchAnalyticsProvider());
             services.AddAuthentication(x =>
             {

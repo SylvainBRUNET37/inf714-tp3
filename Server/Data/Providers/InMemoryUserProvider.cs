@@ -1,10 +1,11 @@
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using INF714.Data.Providers.Interfaces;
 
 namespace INF714.Data.Providers
 {
-    public class InMemoryUserProvider : Interfaces.IUserProvider
+    public class InMemoryUserProvider : IUserProvider
     {
         Dictionary<Guid, User> _users = new Dictionary<Guid, User>();
 
@@ -27,6 +28,11 @@ namespace INF714.Data.Providers
             User user = new User();
             _users.TryGetValue(id, out user);
             return user;
+        }
+
+        public Task<User> GetFromSteamID(ulong steamId)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task Save(User user)
